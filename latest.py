@@ -12,7 +12,7 @@ import os
 from timer import Timer
 
 
-#connect to db
+# connect to db
 conn = sqlite3.connect("fingers.db")
 db = conn.cursor()
 
@@ -20,51 +20,23 @@ WIN_WID = 400
 WIN_HEI = 450
 
 # TO DO
-# add gui
-# more sophisticated user system?
-# better graphs?
+# login/out as menu option
+# get diagnosis in gui
 # improve recovery sched data
 # fix bugs
 # clean up code
-# expectations for remodelling
+# remodelling phases, open 1 finger, 4 finger closed
 
 
 def main():
-    
 
-    # gui
     root = Tk()
     root.title("Finger Rehabilitator")
     root.minsize(200, 200)
-    root.geometry(f'{WIN_WID+100}x{WIN_HEI}-5-5')
+    root.geometry(f"{WIN_WID+100}x{WIN_HEI}-5-5")
     app = MainWindow(root)
-    #root.bind('<Key-Esc>', exit_script())
+    # root.bind('<Key-Esc>', exit_script())
     create_tables()
-
-    """user = User(input("User Name: "))
-    user.lookup_user()
-    print(user)
-
-    user.recovery_sched()
-    if "remodelling" in user.phase.current_phase:
-        
-        nb = input("Do you want to record a new baseline? (y/n): ")
-        if nb == "y":
-            user.test_baseline()
-        print(user.metrics_info())
-        sesh = input("Do you want to record actitity? (y/n): ")
-        if sesh == "y":
-            record = user.record_hang()
-            print(f"Success rate: {record}%")
-        else:
-            print("maybe next time.")
-        #results = user.db_progress()
-
-        user.print_graph()
-    else:
-        print(
-            f"It's too soon for you to start rehab, but you should keep up with your recovery and come back in {phase.rehab_start_day} days to start rehab."
-        )"""
     root.mainloop()
     exit_script()
 
@@ -76,73 +48,79 @@ class MainWindow:
         self.logged_in = False
 
         self.user_name = StringVar()
-        #self.user_name.set(None)
+        # self.user_name.set(None)
         self.user_note = StringVar()
-        self.user_note.set('No one logged in')
+        self.user_note.set("No one logged in")
 
         self.diagnosis_info = StringVar()
-        self.diagnosis_info.set('Login to see your diagnosis information')
+        self.diagnosis_info.set("Login to see your diagnosis information")
         self.recovery_info = StringVar()
         self.progress_info = StringVar()
-        self.progress_info.set('Login to see your recovery progress')
+        self.progress_info.set("Login to see your recovery progress")
         self.progress_graph_path = "sampleplot.png"
         self.progress_graph_image = None
         self.activity_info = StringVar()
-        self.activity_info.set('Login to record activity')
-        
+        self.activity_info.set("Login to record activity")
+
         self.mainframe()
         self.login_window()
         self.notebook()
 
     def mainframe(self):
         self.mainframe = ttk.Frame(self.root, padding=4)
-        self.mainframe.grid(column=0, row=0, sticky=(N,E,S,W))
+        self.mainframe.grid(column=0, row=0, sticky=(N, E, S, W))
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
-        mainframe_label = ttk.Label(self.mainframe, text="Rehabilitate your finger injury", justify='center')
-        mainframe_label.grid(column=0, row=1, sticky=(N,E,S,W))
+        mainframe_label = ttk.Label(
+            self.mainframe, text="Rehabilitate your finger injury", justify="center"
+        )
+        mainframe_label.grid(column=0, row=1, sticky=(N, E, S, W))
 
     def notebook(self):
         self.notebook = ttk.Notebook(self.mainframe)
-        self.notebook.grid(column=0, row=4, sticky=(N,E,S,W), padx=5, pady=5)
+        self.notebook.grid(column=0, row=4, sticky=(N, E, S, W), padx=5, pady=5)
         self.mainframe.rowconfigure(4, weight=10)
         self.notebook_diagnosis()
         self.notebook_progress()
         self.notebook_graph()
         self.notebook_activity()
 
-    """def notebook_frame(self, n):
-        self.notebook_{n} = ttk.Frame(self.{n})
-        self.notebook.add(self.notebook_{n}, text=f'{n.title()}')"""
-
     def notebook_diagnosis(self):
         self.notebook_diagnosis = ttk.Frame(self.notebook)
-        self.notebook.add(self.notebook_diagnosis, text='Diagnosis')
-        diagnosis_label = ttk.Label(self.notebook_diagnosis, textvariable=self.diagnosis_info, wraplength=WIN_WID)
-        diagnosis_label.grid(column=0, row=0, sticky=(N,E,S,W))
-        recovery_label = ttk.Label(self.notebook_diagnosis, textvariable=self.recovery_info, wraplength=WIN_WID)
-        recovery_label.grid(column=0, row=2, sticky=(N,E,S,W))
-    
+        self.notebook.add(self.notebook_diagnosis, text="Diagnosis")
+        diagnosis_label = ttk.Label(
+            self.notebook_diagnosis,
+            textvariable=self.diagnosis_info,
+            wraplength=WIN_WID,
+        )
+        diagnosis_label.grid(column=0, row=0, sticky=(N, E, S, W))
+        recovery_label = ttk.Label(
+            self.notebook_diagnosis, textvariable=self.recovery_info, wraplength=WIN_WID
+        )
+        recovery_label.grid(column=0, row=2, sticky=(N, E, S, W))
+
     def notebook_progress(self):
         self.notebook_progress = ttk.Frame(self.notebook)
-        self.notebook.add(self.notebook_progress, text='Progress')
-        progress_label = ttk.Label(self.notebook_progress, textvariable=self.progress_info, wraplength=WIN_WID)
-        progress_label.grid(column=0, row=0, sticky=(N,E,S,W))
-        
+        self.notebook.add(self.notebook_progress, text="Progress")
+        progress_label = ttk.Label(
+            self.notebook_progress, textvariable=self.progress_info, wraplength=WIN_WID
+        )
+        progress_label.grid(column=0, row=0, sticky=(N, E, S, W))
+
     def notebook_graph(self):
         self.notebook_graph = ttk.Frame(self.notebook)
-        self.notebook.add(self.notebook_graph, text='Graph')
+        self.notebook.add(self.notebook_graph, text="Graph")
         self.add_graph()
 
     def add_graph(self):
         try:
-            tmp = (f"{self.user.id}plot.png")
+            tmp = f"{self.user.id}plot.png"
             print(tmp)
             if os.path.isfile(tmp):
-                print('image exists')
-                self.progress_graph_path = tmp    
-            else:   
-                print('image does not exist')
+                print("image exists")
+                self.progress_graph_path = tmp
+            else:
+                print("image does not exist")
         except:
             print("problem getting graph")
         try:
@@ -152,29 +130,35 @@ class MainWindow:
         except:
             print("problem getting graph")
         self.graph_img = ttk.Label(self.notebook_graph, image=self.progress_graph_image)
-        self.graph_img.grid(column=0, row=1, sticky=(N,E,S,W))
+        self.graph_img.grid(column=0, row=1, sticky=(N, E, S, W))
 
     def notebook_activity(self):
         self.notebook_activity = ttk.Frame(self.notebook)
-        self.notebook.add(self.notebook_activity, text='Activity')
-        activity_label = ttk.Label(self.notebook_activity, textvariable=self.activity_info)
-        activity_label.grid(column=0, row=0, sticky=(N,E,S,W))
+        self.notebook.add(self.notebook_activity, text="Activity")
+        activity_label = ttk.Label(
+            self.notebook_activity, textvariable=self.activity_info
+        )
+        activity_label.grid(column=0, row=0, sticky=(N, E, S, W))
 
     def login_window(self):
-        self.login_window = ttk.Frame(self.mainframe, borderwidth=5, relief='ridge', width=200, height=100)
-        self.login_window.grid(column=0, row=2, sticky=(N,E,S,W))
+        self.login_window = ttk.Frame(
+            self.mainframe, borderwidth=5, relief="ridge", width=200, height=100
+        )
+        self.login_window.grid(column=0, row=2, sticky=(N, E, S, W))
         self.mainframe.columnconfigure(0, weight=0)
         self.mainframe.rowconfigure(1, weight=1)
-        login_label = ttk.Label(self.login_window, text='User Login')
-        login_label.grid(column=0, row=0, sticky=(N,E,S,W))
+        login_label = ttk.Label(self.login_window, text="User Login")
+        login_label.grid(column=0, row=0, sticky=(N, E, S, W))
         user_name_entry = ttk.Entry(self.login_window, textvariable=self.user_name)
-        user_name_entry.grid(column=0, row=1, sticky=(N,E,S,W), padx=5, pady=5)
+        user_name_entry.grid(column=0, row=1, sticky=(N, E, S, W), padx=5, pady=5)
         user_name_entry.focus()
-        login_button = ttk.Button(self.login_window, text='Login', command=lambda: self.login_check())
-        login_button.grid(column=0, row=2, sticky=(N,E,W))
-        self.root.bind('<Return>', self.login_check)
+        login_button = ttk.Button(
+            self.login_window, text="Login", command=lambda: self.login_check()
+        )
+        login_button.grid(column=0, row=2, sticky=(N, E, W))
+        self.root.bind("<Return>", self.login_check)
         user_label = ttk.Label(self.login_window, textvariable=self.user_note)
-        user_label.grid(column=0, row=3, sticky=(N,E,S,W))
+        user_label.grid(column=0, row=3, sticky=(N, E, S, W))
 
     def login_check(self, *args):
         print(args)
@@ -192,10 +176,10 @@ class MainWindow:
         self.logged_in = True
 
     def populate_info(self):
-        try: 
+        try:
             self.user_note.set(f"{self.user.name.title()} Logged in")
             if not self.user:
-                ...#get diagnosis
+                ...  # get diagnosis
 
             self.diagnosis_info.set(str(self.user))
             self.recovery_info.set(str(self.user.recovery_sched()))
@@ -203,26 +187,43 @@ class MainWindow:
         except:
             print("problem getting user info")
         self.add_graph()
-        
 
-        self.activity_info.set('Lets Go')
-        self.baseline_button = ttk.Button(self.notebook_activity, text='Record Baseline', command=lambda: self.new_baseline())
-        self.baseline_button.grid(column=0, row=2, sticky=(N,E,W))
-        self.activity_button = ttk.Button(self.notebook_activity, text='Record Activity', command=lambda: self.new_activity())
-        self.activity_button.grid(column=0, row=4, sticky=(N,E,W))
+        if "remodelling" in self.user.phase.current_phase:
+            self.activity_info.set("Lets Go")
+            self.baseline_button = ttk.Button(
+                self.notebook_activity,
+                text="Record Baseline",
+                command=lambda: self.new_baseline(),
+            )
+            self.baseline_button.grid(column=0, row=2, sticky=(N, E, W))
+            self.activity_button = ttk.Button(
+                self.notebook_activity,
+                text="Record Activity",
+                command=lambda: self.new_activity(),
+            )
+            self.activity_button.grid(column=0, row=4, sticky=(N, E, W))
+        else:
+            self.activity_info.set(
+                f"It's too soon for you to start rehab, but you should keep up with your recovery and come back in {self.user.phase.rehab_start_day} days to start rehab."
+            )
 
     def new_activity(self):
         if not self.user.baseline:
             messagebox.showinfo(message="Please record a baseline first")
             return
-        self.record_mode = 'activity'
-        self.hangs(10)
-        
+        attempts = 10
+        self.record_mode = "activity"
+        self.mode_info = StringVar()
+        self.hangs(attempts)
 
     def new_baseline(self):
-        self.record_mode = 'baseline'
-        self.hangs(3)
-        
+        attempts = 3
+        self.record_mode = "baseline"
+        self.mode_info = StringVar()
+        self.mode_info.set(
+            f"To gauge your recovery we will need to benchmark your injured finger against the opposite (hopefully) healthy finger on your other hand.\n We will get a baseline strength for that finger now. \n Okay you're going to need your sling or hangboard, let's give it {attempts} attempts, try and hold the weight for 15 seconds"
+        )
+        self.hangs(attempts)
 
     def hangs(self, sets):
         self.notebook_recording = ttk.Frame(self.notebook)
@@ -232,34 +233,43 @@ class MainWindow:
         self.sets = StringVar()
         self.sets.set(sets)
         self.sets_entry = ttk.Entry(self.notebook_recording, textvariable=self.sets)
-        self.sets_entry.grid(column=0, row=1, sticky=(N,E,S,W), padx=5, pady=5)
-        self.sets_label = ttk.Label(self.notebook_recording, text='sets')
-        self.sets_label.grid(column=1, row=1, sticky=(N,S,W))
+        self.sets_entry.grid(column=0, row=1, sticky=(N, E, S, W), padx=5, pady=5)
+        self.sets_label = ttk.Label(self.notebook_recording, text="sets")
+        self.sets_label.grid(column=1, row=1, sticky=(N, S, W))
 
         self.seconds = StringVar()
-        self.seconds.set('15')
-        self.seconds_entry = ttk.Entry(self.notebook_recording, textvariable=self.seconds)
-        self.seconds_entry.grid(column=0, row=2, sticky=(N,E,S,W), padx=5, pady=5)
-        self.seconds_label = ttk.Label(self.notebook_recording, text='seconds')
-        self.seconds_label.grid(column=1, row=2, sticky=(N,S,W))
+        self.seconds.set("15")
+        self.seconds_entry = ttk.Entry(
+            self.notebook_recording, textvariable=self.seconds
+        )
+        self.seconds_entry.grid(column=0, row=2, sticky=(N, E, S, W), padx=5, pady=5)
+        self.seconds_label = ttk.Label(self.notebook_recording, text="seconds")
+        self.seconds_label.grid(column=1, row=2, sticky=(N, S, W))
 
         self.weight = StringVar()
         self.weight.set(str(round(self.user.pb * 0.8)))
         self.weight_entry = ttk.Entry(self.notebook_recording, textvariable=self.weight)
-        self.weight_entry.grid(column=0, row=3, sticky=(N,E,S,W), padx=5, pady=5)
-        self.weight_label = ttk.Label(self.notebook_recording, text='Kg')
-        self.weight_label.grid(column=1, row=3, sticky=(N,S,W))
+        self.weight_entry.grid(column=0, row=3, sticky=(N, E, S, W), padx=5, pady=5)
+        self.weight_label = ttk.Label(self.notebook_recording, text="Kg")
+        self.weight_label.grid(column=1, row=3, sticky=(N, S, W))
 
-        self.go_button = ttk.Button(self.notebook_recording, text='Go', command=lambda: self.launch_activity())
-        self.go_button.grid(column=0, row=4, sticky=(N,E,W))
+        self.go_button = ttk.Button(
+            self.notebook_recording, text="Go", command=lambda: self.launch_activity()
+        )
+        self.go_button.grid(column=0, row=4, sticky=(N, E, W))
         self.go_button.focus()
 
+        self.hang_label = ttk.Label(
+            self.notebook_recording, textvariable=self.mode_info
+        )
+        self.hang_label.grid(
+            column=0, row=4, columnspan=2, sticky=(N, E, S, W), wraplength=200
+        )
 
     def launch_activity(self):
-        
         warmed_up = False
         if not warmed_up:
-            warmed_up = warmup()
+            warmed_up = self.warmup()
         self.success = 0
         self.max_wt = 0
         self.log = {}
@@ -268,12 +278,14 @@ class MainWindow:
         self.seconds = int(self.seconds.get())
         self.sets_entry.grid_remove()
         self.sets_label.grid_remove()
-        rest_label = ttk.Label(self.notebook_recording, text="Rest, 2-3 mins").grid(column=0, row=0)
+        rest_label = ttk.Label(self.notebook_recording, text="Rest, 2-3 mins").grid(
+            column=0, row=0
+        )
         self.seconds_entry.grid_remove()
         self.seconds_label.grid_remove()
         self.go_button.config(text="Next rep", command=lambda: self.perform_rep())
         self.perform_rep()
-        
+
     def perform_rep(self):
         while self.rep < self.attempts:
             try:
@@ -289,7 +301,9 @@ class MainWindow:
                 if wt > self.max_wt:
                     self.max_wt = wt
                 else:
-                    messagebox.showinfo(message="Well done, consider adding a little bit of weight")
+                    messagebox.showinfo(
+                        message="Well done, consider adding a little bit of weight"
+                    )
             """if i < attempts - 1:
                 messagebox.showinfo(message="Rest for 2-3 minutes")
             else:
@@ -298,31 +312,41 @@ class MainWindow:
             print(self.rep, self.attempts)
             self.rep += 1
         self.notebook_recording.destroy()
-        if self.record_mode == 'activity':
+        if self.record_mode == "activity":
             try:
                 self.success_rate = (self.attempts / self.success) * 100
             except ZeroDivisionError():
                 self.success_rate = 0
             if self.max_wt > self.user.pb:
-                messagebox.showinfo(message=(
-                f"Well Done, thats a new P.B, your old P.B was {self.user.pb}kg, your new P.B is {self.max_wt}kg"))
+                messagebox.showinfo(
+                    message=(
+                        f"Well Done, thats a new P.B, your old P.B was {self.user.pb}kg, your new P.B is {self.max_wt}kg"
+                    )
+                )
                 self.user.db_update_pb(self.max_wt)
-            self.user.db_log_rehab({
-            "max weight": self.max_wt,
-            "success rate": self.success_rate,
-            "time": self.seconds,
-            "sets": self.attempts,
-            "workout log": self.log,})
+            self.user.db_log_rehab(
+                {
+                    "max weight": self.max_wt,
+                    "success rate": self.success_rate,
+                    "time": self.seconds,
+                    "sets": self.attempts,
+                    "workout log": self.log,
+                }
+            )
         else:
             self.user.baseline = self.max_wt
             self.user.db_update_baseline()
         self.user.print_graph(show=False)
         self.populate_info()
 
-
-    
-
-
+    # acknowledge warmup message
+    def warmup():
+        return (
+            messagebox.showinfo(
+                message="To warm up, do a 2-5 minutes pulse raiser activity e.g Skipping, followed by 5 hangs/pulls increasing from 30% to 80% max in 10% intervals."
+            )
+            == "ok"
+        )
 
 
 class User:
@@ -418,7 +442,7 @@ class User:
         ) = existing
         self.since_inj = ((date.today()) - (self.date)).days
         self.phase = Phase(self.since_inj, self.grade)
-        self.sched_exp = self.phase.rehab_progress / self.phase.rehab_phase_length 
+        self.sched_exp = self.phase.rehab_progress / self.phase.rehab_phase_length
 
     def db_diagnosis(self):
         # insert into db
@@ -486,7 +510,7 @@ class User:
         if len(self.phase.current_phase) > 1:
             return f"It's been {self.since_inj} days, you're between the {self.phase.current_phase[0]} and {self.phase.current_phase[1]} phase, if you're feeling good you should be feeling {self.phase.physical_characteristics[1]}, otherwise you might still feel {self.phase.physical_characteristics[0]}, you should still be making sure you {self.phase.precautions[0]}. But to recover you could start to {self.phase.recovery_activities[1]}."
         else:
-            return (f"It's been {self.since_inj} days, you're in the {self.phase.current_phase[0]} phase, you should be feeling {self.phase.physical_characteristics[0]}, you should be making sure you {self.phase.precautions[0]}. To recover you should be {self.phase.recovery_activities[0]}.")
+            return f"It's been {self.since_inj} days, you're in the {self.phase.current_phase[0]} phase, you should be feeling {self.phase.physical_characteristics[0]}, you should be making sure you {self.phase.precautions[0]}. To recover you should be {self.phase.recovery_activities[0]}."
 
     def get_diagnosis(self):
 
@@ -613,66 +637,10 @@ class User:
         )
         self.db_diagnosis()
 
-    """def test_baseline(self):
-        attempts = 3
-        print(
-            "To gauge your recovery we will need to benchmark your injured finger against the opposite (hopefully) healthy finger on your other hand.\n We will get a baseline strength for that finger now... "
-        )
-        time.sleep(1)
-        print(
-            f"Nice, okay you're going to need your sling or hangboard, let's give it {attempts} attempts, try and hold the weight for 7 seconds"
-        )
-        time.sleep(1)
-        activity = perform_sets(attempts)
-        while True:
-            proceed = (
-                input(
-                    "Are you happy with that score or do you want to give it another go? ('y' to use current max) ..."
-                )
-                == "y"
-            )
-            if proceed:
-                break
-            else:
-                activity = perform_sets(attempts=1)
-
-        self.baseline = activity["max weight"]
-        
-        self.db_update_baseline()"""
-        
     def metrics_info(self):
-        return f"Your baseline strength is {self.baseline}, your current p.b is {self.pb}"
-
-    """def record_hang(self):
-        warmed_up = False
-        # record activity
-        if not warmed_up:
-            warmed_up = warmup()
-
-        print(self.progress_info())
-
-        mode = input(
-            "Record if you're using your finger in an open, half crimp or crimp position. ('open'/'half-crimp'/'crimp')... "
+        return (
+            f"Your baseline strength is {self.baseline}, your current p.b is {self.pb}"
         )
-        try:
-            attempts = 10
-            attempts = int(input(f"sets: (leave blank to use {attempts} sets)..."))
-        except ValueError:
-            attempts = 10
-        try:
-            seconds = 15
-            seconds = int(input(f"time(s): (leave blank to use {seconds}s)... "))
-        except ValueError:
-            seconds = 15
-        activity = perform_sets(attempts, seconds)
-        if activity["max weight"] > self.pb:
-            print(
-                f"Well Done, thats a new P.B, your old P.B was {self.pb}kg, your new P.B is {activity['max weight']}kg"
-            )
-            self.db_update_pb(activity["max weight"])
-        self.db_log_rehab(activity)
-
-        return round(activity["success rate"])"""
 
     def print_graph(self, show=True):
         # sets, time, max_weight, success_rate, date #baseline
@@ -701,12 +669,11 @@ class User:
                 time = result[2]
                 max_weights.append(result[3])
                 success_rates.append(result[4])
-        
-        days = list(range(dates[0], dates[len(dates)-1]))
+
+        days = list(range(dates[0], dates[len(dates) - 1]))
         for day in days:
             exp = day / self.phase.rehab_phase_length
             exp_prog.append(self.baseline * exp)
-
 
         plt.plot(
             dates,
@@ -721,16 +688,16 @@ class User:
         )
         # plt.errorbar(dates, max_weights, yerr=sets, fmt='o', ecolor='green', color='green')
         plt.axhline(y=self.baseline, color="red", linestyle="--", label="baseline")
-        plt.plot(days, exp_prog, label='expected progress')
+        plt.plot(days, exp_prog, label="expected progress")
 
         plt.xlabel("Days Since Injury")
         plt.ylabel("Max Weight")
         plt.title("Weights over time")
         plt.legend()
-        plt.savefig(f"{self.id}plot.png", bbox_inches='tight')
+        plt.savefig(f"{self.id}plot.png", bbox_inches="tight")
         if show:
             plt.show()
-        
+
     def progress_info(self):
         last_sesh = self.db_last_sesh()
         if not self.baseline:
@@ -747,91 +714,7 @@ class User:
                 return f"Okay {self.name.title()}, it's been {self.since_inj} days since your injury, this is your first session, try to take it really slow\n"
         else:
             return "Okay take it easy, you need to wait for the acute phase to pass, come back in 3-5 days"
-            
 
-
-# set iterator
-"""def perform_sets(attempts=10, seconds=15):
-    success = 0
-    max_wt = 0
-    log = {}
-    for i in range(attempts):
-        while True:
-            try:
-                weight = float(input("What weight are you using? (kg)... "))
-                break
-            except ValueError:
-                print("Enter a numeric weight")
-        timer = Timer(seconds)
-
-        tick = timer.completed()
-        if tick:
-            success += 1
-            if weight > max_wt:
-                max_wt = weight
-        if i < attempts - 1:
-            messagebox.showinfo(message="Rest for 2-3 minutes")
-        else:
-            messagebox.showinfo(message="That's all.")
-        log.update({f"set {i}": {"weight": weight, "success": tick}})
-
-        try:
-            success_rate = (attempts / success) * 100
-        except ZeroDivisionError():
-            success_rate = 0
-    return {
-        "max weight": max_wt,
-        "success rate": success_rate,
-        "time": seconds,
-        "sets": attempts,
-        "workout log": log,
-    }"""
-
-
-"""class Timer:
-    # rep timer
-    def __init__(self, n):
-        self.n = n
-        self.win = Tk()
-        self.win.title("Timer")
-        #t.minsize(50, 50)
-        #t.geometry(f'100x100-5+5')
-        self.f = ttk.Frame(self.win, padding=4).grid(column=0, row=0)
-        start_button = ttk.Button(self.f, text='Start', command=lambda: self.countdown()).grid(column=0, row=0)
-        self.secs = StringVar()
-        self.secs_label = ttk.Label(self.f, textvariable=self.secs).grid(column=0, row=1)
-        
-        self.win.mainloop()
-
-    def countdown(self):
-        
-        #start = input("OK, when you're ready hit any 'Enter'...")
-        seq = [
-            "Ready",
-            "Steady",
-            "Go!!!!",
-        ]
-        for i in seq:
-            self.secs.set(i)
-            self.win.update()
-            time.sleep(1)
-            print(i)
-        while self.n:
-            self.secs.set(str(self.n))#n, end="\r")
-            self.win.update()
-            time.sleep(1)
-            print(self.n)
-            self.n -= 1
-        self.secs.set("Time Up")"""
-
-
-# acknowledge warmup message
-def warmup():
-    return messagebox.showinfo(message="To warm up, do a 2-5 minutes pulse raiser activity e.g Skipping, followed by 5 hangs/pulls increasing from 30% to 80% max in 10% intervals.") == "ok"
-    """input(
-        "To warm up, do a 2-5 minutes pulse raiser activity e.g Skipping, followed by 5 hangs/pulls increasing from 30% to 80% max in 10% intervals. (Hit 'Enter' to continue)..."
-    )
-    return True"""
 
 
 def create_tables():
@@ -846,6 +729,7 @@ def create_tables():
 def exit_script():
     conn.close()
     sys.exit("Thanks for coming")
+
 
 if __name__ == "__main__":
     main()
