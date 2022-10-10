@@ -20,6 +20,8 @@ class Phase:
         },
     }
     
+    # for grades of injury from 1 to 4:
+    # tuples are start and finish of each phase of recovery from the day of injury
     severity = {
         1: {
             "acute": (1,5),
@@ -27,19 +29,19 @@ class Phase:
             "remodelling": (28, 183),
         },
         2: {
-            "acute": [1,7],
-            "proliferation": [5, 50],
-            "remodelling": [30, 190],
+            "acute": (1,7),
+            "proliferation": (5, 50),
+            "remodelling": (30, 190),
         },
         3: {
-            "acute": [1,14],
-            "proliferation": [10, 60],
-            "remodelling": [40, 200],
+            "acute": (1,14),
+            "proliferation": (10, 60),
+            "remodelling": (40, 200),
         },
         4: {
-            "acute": [1,30],
-            "proliferation": [25, 100],
-            "remodelling": [60, 250],
+            "acute": (1,30),
+            "proliferation": (25, 100),
+            "remodelling": (6, 250),
         }
     }
 
