@@ -36,7 +36,7 @@ def main():
     root.geometry(f"{WIN_WID+100}x{WIN_HEI}-5-5")
     app = MainWindow(root)
     # root.bind('<Key-Esc>', exit_script())
-    create_tables()
+    # create_tables()
     root.mainloop()
     exit_script()
 
@@ -65,6 +65,8 @@ class MainWindow:
         self.mainframe()
         self.login_window()
         self.notebook()
+
+        self.warmed_up = False
 
     def mainframe(self):
         self.mainframe = ttk.Frame(self.root, padding=4)
@@ -113,24 +115,23 @@ class MainWindow:
         self.add_graph()
 
     def add_graph(self):
-        try:
-            tmp = f"{self.user.id}plot.png"
-            print(tmp)
-            if os.path.isfile(tmp):
-                print("image exists")
-                self.progress_graph_path = tmp
-            else:
-                print("image does not exist")
-        except:
-            print("problem getting graph")
-        try:
-            i = Image.open(self.progress_graph_path)
-            i = i.resize((250, 250))
-            self.progress_graph_image = ImageTk.PhotoImage(i)
-        except:
-            print("problem getting graph")
-        self.graph_img = ttk.Label(self.notebook_graph, image=self.progress_graph_image)
-        self.graph_img.grid(column=0, row=1, sticky=(N, E, S, W))
+        if self.user:
+            try:
+                tmp = self.user.graph
+                if os.path.isfile(tmp):
+                    self.progress_graph_path = tmp
+                else:
+                    print("image does not exist")
+            except:
+                print("problem getting graph")
+            try:
+                i = Image.open(self.progress_graph_path)
+                i = i.resize((250, 250))
+                self.progress_graph_image = ImageTk.PhotoImage(i)
+            except:
+                print("problem getting graph")
+            self.graph_img = ttk.Label(self.notebook_graph, image=self.progress_graph_image)
+            self.graph_img.grid(column=0, row=1, sticky=(N, E, S, W))
 
     def notebook_activity(self):
         self.notebook_activity = ttk.Frame(self.notebook)
@@ -156,13 +157,11 @@ class MainWindow:
             self.login_window, text="Login", command=lambda: self.login_check()
         )
         login_button.grid(column=0, row=2, sticky=(N, E, W))
-        self.root.bind("<Return>", self.login_check)
+        self.root.bind("<Return>", lambda e: self.login_check())
         user_label = ttk.Label(self.login_window, textvariable=self.user_note)
         user_label.grid(column=0, row=3, sticky=(N, E, S, W))
 
     def login_check(self, *args):
-        print(args)
-        print(self.user_name.get())
         try:
             username = self.user_name.get()
             if username != None:
@@ -259,17 +258,19 @@ class MainWindow:
         self.go_button.grid(column=0, row=4, sticky=(N, E, W))
         self.go_button.focus()
 
+        self.root.bind("<Return>", lambda e: self.launch_activity())
+
         self.hang_label = ttk.Label(
             self.notebook_recording, textvariable=self.mode_info
         )
         self.hang_label.grid(
-            column=0, row=4, columnspan=2, sticky=(N, E, S, W), wraplength=200
+            column=0, row=5, columnspan=2, sticky=(N, E, S, W)
         )
 
     def launch_activity(self):
-        warmed_up = False
-        if not warmed_up:
-            warmed_up = self.warmup()
+        
+        if not self.warmed_up:
+            self.warmed_up = self.warmup()
         self.success = 0
         self.max_wt = 0
         self.log = {}
@@ -283,7 +284,7 @@ class MainWindow:
         )
         self.seconds_entry.grid_remove()
         self.seconds_label.grid_remove()
-        self.go_button.config(text="Next rep", command=lambda: self.perform_rep())
+        self.go_button.config(text="New Weight", command=lambda: self.perform_rep())
         self.perform_rep()
 
     def perform_rep(self):
@@ -292,6 +293,7 @@ class MainWindow:
                 wt = float(self.weight.get())
             except ValueError:
                 print("problem getting weight")
+            print(wt)
             timer = Timer(self.notebook_recording, self.seconds)
             tick = timer.success
             timer.win.destroy()
@@ -323,8 +325,8 @@ class MainWindow:
                         f"Well Done, thats a new P.B, your old P.B was {self.user.pb}kg, your new P.B is {self.max_wt}kg"
                     )
                 )
-                self.user.db_update_pb(self.max_wt)
-            self.user.db_log_rehab(
+                self.user.db.update_pb(self.max_wt)
+            self.user.db.log_rehab(
                 {
                     "max weight": self.max_wt,
                     "success rate": self.success_rate,
@@ -335,12 +337,11 @@ class MainWindow:
             )
         else:
             self.user.baseline = self.max_wt
-            self.user.db_update_baseline()
+            self.user.db.update_baseline(self.user.baseline)
         self.user.print_graph(show=False)
         self.populate_info()
 
-    # acknowledge warmup message
-    def warmup():
+    def warmup(self):
         return (
             messagebox.showinfo(
                 message="To warm up, do a 2-5 minutes pulse raiser activity e.g Skipping, followed by 5 hangs/pulls increasing from 30% to 80% max in 10% intervals."
@@ -367,6 +368,7 @@ class User:
         self.since_inj = 0
         self.sched_exp = 0
         self.phase = None
+        self.db = Db(self)
 
     def __str__(self):
         return f"{self.name.title()}: grade {self.grade} injury to the {self.hand}, {self.finger} digit, on {self.date}, {self.since_inj} days ago so you should be roughly {self.sched_exp*100:.2f}% recovered Your baseline strength is {self.baseline}, your current p.b is {self.pb}"
@@ -377,30 +379,11 @@ class User:
 
     @date.setter
     def date(self, inj_date):
-        # print(inj_date)
-
         if inj_date != 0:
             inj_date = str(inj_date)
             d_t = datetime.strptime(str(inj_date), "%Y-%m-%d").date()
 
             self._date = d_t
-
-        """if not date:
-            raise ValueError("Not Date")
-            self._date = date.today()
-        else:
-            try:
-                print(inj_date)
-                self._date = datetime.strptime(str(inj_date), '%Y,-%m,-%d').date()
-                print(self._date)
-                
-            except ValueError:
-                try:
-                    day, month, year = inj_date.strip().split("/")
-                    self._date = date(int(year), int(month), int(day)).isoformat()
-                except:
-                    print("Didn't work")
-                    self.date = None"""
 
     @property
     def name(self):
@@ -414,21 +397,14 @@ class User:
             self._name = name
 
     def lookup_user(self):
-        self.temp = db.execute(
-            "SELECT user_id, name, injury_date, injury_grade, hand, finger, structures, baseline, pb FROM users WHERE name = ?",
-            (self.name,),
-        )
-
-        lookup = self.temp.fetchone()
-        if lookup:
-            self.login(lookup)
-            print(f"Welcome Back {self.name.title()}")
+        self.temp = self.db.lookup()
+        if self.temp:
+            self.login(self.temp)
         else:
             self.get_diagnosis()
             self.lookup_user()
 
     def login(self, existing):
-
         (
             self.id,
             self.name,
@@ -443,74 +419,14 @@ class User:
         self.since_inj = ((date.today()) - (self.date)).days
         self.phase = Phase(self.since_inj, self.grade)
         self.sched_exp = self.phase.rehab_progress / self.phase.rehab_phase_length
-
-    def db_diagnosis(self):
-        # insert into db
-        db.execute(
-            "INSERT INTO users (name, injury_grade, hand, finger, structures, injury_date) VALUES (?, ?, ?, ?, ?, ?)",
-            (
-                self.name,
-                self.grade,
-                self.hand,
-                self.finger,
-                str(self.pulleys),
-                self.date,
-            ),
-        )
-        conn.commit()
-
-    def db_last_sesh(self):
-        return db.execute(
-            "SELECT activity_date, max_weight FROM rehab WHERE user_id = ? ORDER BY activity_date DESC, max_weight DESC LIMIT 1",
-            (self.id,),
-        ).fetchone()
-
-    def db_update_baseline(self):
-        db.execute(
-            "UPDATE users SET baseline = ? WHERE user_id = ?",
-            (
-                self.baseline,
-                self.id,
-            ),
-        )
-        conn.commit()
-
-    def db_update_pb(self, pb):
-        db.execute(
-            "UPDATE users SET pb = ? WHERE user_id = ?",
-            (
-                pb,
-                self.id,
-            ),
-        )
-        conn.commit()
-
-    def db_log_rehab(self, activity):
-        db.execute(
-            "INSERT INTO rehab (user_id, activity_date, sets, time, max_weight, success_rate, log) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (
-                self.id,
-                date.today(),
-                activity["sets"],
-                activity["time"],
-                activity["max weight"],
-                (activity["success rate"]),
-                str(activity["workout log"]),
-            ),
-        )
-        conn.commit()
-
-    def db_progress(self):
-        return db.execute(
-            "SELECT activity_date, sets, time, max_weight, success_rate FROM rehab WHERE user_id = ?",
-            (self.id,),
-        ).fetchall()
+        self.graph = f"{self.id}plot.png"
+        #self.db.self.login(existing)
 
     def recovery_sched(self):
         if len(self.phase.current_phase) > 1:
-            return f"It's been {self.since_inj} days, you're between the {self.phase.current_phase[0]} and {self.phase.current_phase[1]} phase, if you're feeling good you should be feeling {self.phase.physical_characteristics[1]}, otherwise you might still feel {self.phase.physical_characteristics[0]}, you should still be making sure you {self.phase.precautions[0]}. But to recover you could start to {self.phase.recovery_activities[1]}."
+            return f"It's been {self.since_inj} days, you're between the {self.phase.current_phase[0]} and {self.phase.current_phase[1]} phase.\n\n If you're feeling good you should be feeling {self.phase.physical_characteristics[1]}.\n\n Otherwise you might still feel {self.phase.physical_characteristics[0]}.\n\n You should still be making sure you {self.phase.precautions[0]}.\n\n But to recover you could start to {self.phase.recovery_activities[1]}."
         else:
-            return f"It's been {self.since_inj} days, you're in the {self.phase.current_phase[0]} phase, you should be feeling {self.phase.physical_characteristics[0]}, you should be making sure you {self.phase.precautions[0]}. To recover you should be {self.phase.recovery_activities[0]}."
+            return f"It's been {self.since_inj} days, you're in the {self.phase.current_phase[0]} phase.\n\n You should be feeling {self.phase.physical_characteristics[0]}.\n\n You should be making sure you {self.phase.precautions[0]}.\n\n To recover you should be {self.phase.recovery_activities[0]}."
 
     def get_diagnosis(self):
 
@@ -635,7 +551,7 @@ class User:
         print(
             "Grade 1: Minor tear,\nGrade 2: Major tear,\nGrade 3: Single rupture or multiple pulley tears,\nGrade 4: Multiple ruptures"
         )
-        self.db_diagnosis()
+        self.db.diagnosis()
 
     def metrics_info(self):
         return (
@@ -644,7 +560,7 @@ class User:
 
     def print_graph(self, show=True):
         # sets, time, max_weight, success_rate, date #baseline
-        results = self.db_progress()
+        results = self.db.progress()
         dates = []
         max_weights = [
             0,
@@ -699,7 +615,7 @@ class User:
             plt.show()
 
     def progress_info(self):
-        last_sesh = self.db_last_sesh()
+        last_sesh = self.db.last_sesh()
         if not self.baseline:
             self.test_baseline()
         try:
@@ -715,15 +631,91 @@ class User:
         else:
             return "Okay take it easy, you need to wait for the acute phase to pass, come back in 3-5 days"
 
+class Db(User):
+    def __init__(self, user):
+        self.id = user.id
+        self.name = user.name
+    
+    def lookup(self):
+        self.create_tables()
+        info = db.execute(
+            "SELECT user_id, name, injury_date, injury_grade, hand, finger, structures, baseline, pb FROM users WHERE name = ?",
+            (self.name,),
+        ).fetchone()
+        if info:
+            self.login(info)
+            return info
+        else:
+            return False
 
+    def progress(self):
+        return db.execute(
+            "SELECT activity_date, sets, time, max_weight, success_rate FROM rehab WHERE user_id = ?",
+            (self.id,),
+        ).fetchall()
 
-def create_tables():
-    db.execute(
-        "CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY ASC AUTOINCREMENT, name TEXT NOT NULL, injury_date TEXT NOT NULL DEFAULT CURRENT_DATE, injury_grade INTEGER, hand TEXT, finger INTEGER, structures TEXT, baseline REAL DEFAULT 0, pb REAL DEFAULT 0)"
-    )
-    db.execute(
-        "CREATE TABLE IF NOT EXISTS rehab (activity_id INTEGER PRIMARY KEY ASC AUTOINCREMENT, user_id REFERENCES users (user_id), activity_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, sets INTEGER, time INTEGER, max_weight REAL, success_rate REAL, log TEXT)"
-    )
+    def log_rehab(self, activity):
+        db.execute(
+            "INSERT INTO rehab (user_id, activity_date, sets, time, max_weight, success_rate, log) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            (
+                self.id,
+                date.today(),
+                activity["sets"],
+                activity["time"],
+                activity["max weight"],
+                (activity["success rate"]),
+                str(activity["workout log"]),
+            ),
+        )
+        conn.commit()
+
+    def update_pb(self, pb):
+        db.execute(
+            "UPDATE users SET pb = ? WHERE user_id = ?",
+            (
+                pb,
+                self.id,
+            ),
+        )
+        conn.commit()
+
+    def update_baseline(self, baseline):
+        db.execute(
+            "UPDATE users SET baseline = ? WHERE user_id = ?",
+            (
+                baseline,
+                self.id,
+            ),
+        )
+        conn.commit()
+
+    def diagnosis(self):
+        db.execute(
+            "INSERT INTO users (name, injury_grade, hand, finger, structures, injury_date) VALUES (?, ?, ?, ?, ?, ?)",
+            (
+                self.name,
+                self.grade,
+                self.hand,
+                self.finger,
+                str(self.pulleys),
+                self.date,
+            ),
+        )
+        conn.commit()
+
+    def last_sesh(self):
+        return db.execute(
+            "SELECT activity_date, max_weight FROM rehab WHERE user_id = ? ORDER BY activity_date DESC, max_weight DESC LIMIT 1",
+            (self.id,),
+        ).fetchone()
+
+    def create_tables(self):
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY ASC AUTOINCREMENT, name TEXT NOT NULL, injury_date TEXT NOT NULL DEFAULT CURRENT_DATE, injury_grade INTEGER, hand TEXT, finger INTEGER, structures TEXT, baseline REAL DEFAULT 0, pb REAL DEFAULT 0)"
+        )
+        db.execute(
+            "CREATE TABLE IF NOT EXISTS rehab (activity_id INTEGER PRIMARY KEY ASC AUTOINCREMENT, user_id REFERENCES users (user_id), activity_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, sets INTEGER, time INTEGER, max_weight REAL, success_rate REAL, log TEXT)"
+        )
 
 
 def exit_script():
