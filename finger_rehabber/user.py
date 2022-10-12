@@ -17,7 +17,7 @@ class User():
         self.id = None
         self.baseline = 0
         self.pb = 0
-        self.graph = f"{self.id}plot.png"
+        self.graph =  f"{self.id}plot.png"
         self.lookup = 0
         self.temp = None
         self.since_inj = 0
@@ -182,7 +182,7 @@ class User():
 class Dbb(User):
     def __init__(self, user):
         # connect to db
-        self.conn = sqlite3.connect("fingers.db")
+        self.conn = sqlite3.connect("../fingers.db")
         self.db = self.conn.cursor()
         self.create_tables()
         self.name = user.name

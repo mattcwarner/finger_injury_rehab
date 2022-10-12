@@ -34,6 +34,7 @@ WIN_HEI = 500
 # clean up code
 # remodelling phases, open 1 finger, 4 finger closed
 # break down mainwindow into smaller units
+# clean folders
 
 
 def main():
