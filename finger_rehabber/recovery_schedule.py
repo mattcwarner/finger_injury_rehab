@@ -66,4 +66,3 @@ class Phase:
         
         def __str__(self):
             return ("Hello")
-
