@@ -11,15 +11,13 @@ class User:
         self.name = name
         self.hand = None
         self.finger = 0
-        self.num = 0
         self.pulleys = {}
         self.grade = 0
         self.date = 0
-        self.id = None
+        self.id = 0
         self.baseline = 0
         self.pb = 0
         self.graph = f"{self.id}plot.png"
-        self.lookup = 0
         self.temp = None
         self.since_inj = 0
         self.sched_exp = 0
@@ -29,6 +27,19 @@ class User:
 
     def __str__(self):
         return f"{self.name.title()}: grade {self.grade} injury to the {self.hand}, {self.finger} digit, on {self.date}, {self.since_inj} days ago so you should be roughly {self.sched_exp*100:.2f}% recovered Your baseline strength is {self.baseline}, your current p.b is {self.pb}"
+
+    @property
+    def baseline(self):
+        return self._baseline
+
+    @baseline.setter
+    def baseline(self, wt):
+        if wt == None:
+            self._baseline = 0
+        elif int(wt) > 0:
+            self._baseline = wt
+        else:
+            self._baseline = 0
 
     @property
     def date(self):
@@ -54,10 +65,9 @@ class User:
             self._name = name
 
     def lookup_user(self):
-        self.temp = self.dbb.lookup()
-        if self.temp:
-            return self.login(self.temp)
-
+        tmp = self.dbb.lookup()
+        if tmp:
+            return self.login(tmp)
         else:
             return False
 
@@ -89,23 +99,23 @@ class User:
     def rehab_sched(self):
         stages = {
             0: [
-                "open sling loads",
+                "open sling",
                 "only your injured finger in isolation in an open grip using the last pad until you reach your baseline",
             ],
             1: [
-                "half crimp loads",
+                "half crimp",
                 "your injured hand in a half crimp position using the last pad until you reach your baseline",
             ],
             2: [
-                "full crimp loads",
+                "full crimp",
                 "your injured hand in a full crimp position using the last pad until you reach your baseline",
             ],
             3: [
-                "both hands loads",
+                "both hands",
                 "both hands in a variety of grip types to continue strengthening your tissues and make you less prone to injury",
             ],
         }
-        if self.pb >= self.baseline:
+        if self.pb >= self.baseline and self.baseline > 0:
             if self.rehab_stage in range(0, 2):
                 self.rehab_stage += 1
                 self.dbb.update_rehab_stage()
@@ -120,7 +130,7 @@ class User:
         if not self.baseline:
             return f"You're ready to move into the next phase of your rehab, which is {stages[self.rehab_stage]}.\nPlease record a new baseline for your current rehab stage"
 
-        return f"You are in the {stages[self.rehab_stage][0]} stage of rehab, Please continue progressively load {stages[self.rehab_stage][1]}"
+        return f"You are in the {stages[self.rehab_stage][0]} stage of rehab, your {stages[self.rehab_stage][0]} baseline strength is {self.baseline}, your your current p.b is {self.pb}.\nPlease continue progressively load {stages[self.rehab_stage][1]}"
 
     def metrics_info(self):
         return (
@@ -130,54 +140,83 @@ class User:
     def print_graph(self, show=True):
         # sets, time, max_weight, success_rate, date #baseline
         results = self.dbb.progress()
-        dates = []
-        max_weights = [
+        o_dates = []
+        o_weights = [
             0,
         ]
-        success_rates = [
-            0,
-        ]
-        sets = [
-            0,
-        ]
+        h_dates = []
+        h_weights = []
+        f_dates = []
+        f_weights = []
+        b_dates = []
+        b_weights = []
         exp_prog = []
+        #success_rates = [0,]
+        #sets = [0,]
 
         for result in results:
-            if len(dates) == 0:
-                dates = [
-                    (date.fromisoformat(result[0]) - self.date).days - 1,
-                ]
-            if result[3] > max_weights[-1]:
+            #try needed for back compatability with my db
+            try:
+                stage = result[5]
+            except:
+                stage = 0
+            if stage == 0:
+                if len(o_dates) == 0:
+                    o_dates = [
+                        (date.fromisoformat(result[0]) - self.date).days - 1,
+                    ]
+                if result[3] > o_weights[-1]:
+                    o_dates.append((date.fromisoformat(result[0]) - self.date).days)
+                    #sets.append(result[1])
+                    #time = result[2]
+                    o_weights.append(result[3])
+                    #success_rates.append(result[4])
+            elif stage == 1:
+                h_dates = [o_dates[-1],]
+                h_weights = [o_weights[-1],]
+                h_dates.append((date.fromisoformat(result[0]) - self.date).days)
+                h_weights.append(result[3])
+            elif stage == 2:
+                f_dates = [h_dates[-1],]
+                f_weights = [h_weights[-1],]
+                f_dates.append((date.fromisoformat(result[0]) - self.date).days)
+                f_weights.append(result[3])
+            else:
+                b_dates = [f_dates[-1],]
+                b_weights = [f_weights[-1],]
+                b_dates.append((date.fromisoformat(result[0]) - self.date).days)
+                b_weights.append(result[3])
 
-                dates.append((date.fromisoformat(result[0]) - self.date).days)
-                sets.append(result[1])
-                time = result[2]
-                max_weights.append(result[3])
-                success_rates.append(result[4])
-
-        if len(dates) == 0:
-            dates = [
+        if len(o_dates) == 0:
+            o_dates = [
                 0,
             ]
-        days = list(range(dates[0], dates[len(dates) - 1]))
+        days = list(range(o_dates[0], (((date.fromisoformat(results[-1][0])) - self.date).days)))
         for day in days:
             exp = day / self.phase.rehab_phase_length
             exp_prog.append(self.baseline * exp)
 
         plt.plot(
-            dates,
-            max_weights,
+            o_dates,
+            o_weights,
             color="red",
             linestyle="dashed",
             linewidth=3,
             marker="*",
             markerfacecolor="green",
-            markersize=10,
-            label="max-weight progression",
+            markersize=7,
+            label="single finger progression",
         )
         # plt.errorbar(dates, max_weights, yerr=sets, fmt='o', ecolor='green', color='green')
         plt.axhline(y=self.baseline, color="red", linestyle="--", label="baseline")
         plt.plot(days, exp_prog, label="expected progress")
+        if h_dates:
+            plt.plot(h_dates, h_weights, color='orange', linestyle='dashed', label='half crimp progression')
+        if f_dates:
+            plt.plot(f_dates, f_weights, color='green', linestyle='dashed', label='full crimp progression')
+        if b_dates:
+            plt.plot(b_dates, b_weights, color='blue', linestyle='dashed', label='training progression')
+
 
         plt.xlabel("Days Since Injury")
         plt.ylabel("Max Weight")

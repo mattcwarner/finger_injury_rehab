@@ -65,7 +65,7 @@ class MainWindow:
         self.recovery_info = StringVar()
         self.progress_info = StringVar()
         self.progress_info.set("Login to see your recovery progress")
-        self.progress_graph_path = "sampleplot.png"
+        self.progress_graph_path = "0plot.png"
         self.progress_graph_image = None
         self.activity_info = StringVar()
         self.activity_info.set("Login to record activity")
@@ -138,16 +138,15 @@ class MainWindow:
             try:
                 tmp = self.user.graph
                 if os.path.isfile(tmp):
-                    self.progress_graph_path = tmp
-                else:
+                    self.progress_graph_path = str(tmp)
+            except:
                     print("image does not exist")
                     self.graph_label.grid(row=0, column=0)
                     self.graph_info.set("This is a sample graph")
-            except:
-                print("problem getting graph")
+
             try:
                 i = Image.open(self.progress_graph_path)
-                i = i.resize((250, 250))
+                i = i.resize((WIN_WID, WIN_WID))
                 self.progress_graph_image = ImageTk.PhotoImage(i)
             except:
                 print("problem getting graph")
@@ -329,7 +328,6 @@ class MainWindow:
                         message="Well done, consider adding a little bit of weight"
                     )
             self.log.update({f"set {self.rep + 1}": {"weight": wt, "success": tick}})
-            print(self.rep, self.attempts)
             self.rep += 1
         self.notebook_recording.destroy()
         if self.record_mode == "activity":
@@ -338,13 +336,13 @@ class MainWindow:
             except ZeroDivisionError():
                 self.success_rate = 0
             if self.max_wt > self.user.pb:
-                self.user.pb = self.max_wt
-                self.check_stage()
                 messagebox.showinfo(
                     message=(
                         f"Well Done, thats a new P.B, your old P.B was {self.user.pb}kg, your new P.B is {self.max_wt}kg"
                     )
                 )
+                self.user.pb = self.max_wt
+                self.check_stage()
                 self.user.dbb.update_pb()
             self.user.dbb.log_rehab(
                 {
@@ -378,381 +376,6 @@ class MainWindow:
                 )
             )
             self.user.rehab_sched()
-
-
-"""
-class User:
-    def __init__(self, name):
-        self.name = name
-        self.hand = None
-        self.finger = 0
-        self.num = 0
-        self.pulleys = {}
-        self.grade = 0
-        self.date = 0
-        self.id = None
-        self.baseline = 0
-        self.pb = 0
-        self.graph = f"{self.id}plot.png"
-        self.lookup = 0
-        self.temp = None
-        self.since_inj = 0
-        self.sched_exp = 0
-        self.phase = None
-        self.dbb = Dbb(self)
-
-    def __str__(self):
-        return f"{self.name.title()}: grade {self.grade} injury to the {self.hand}, {self.finger} digit, on {self.date}, {self.since_inj} days ago so you should be roughly {self.sched_exp*100:.2f}% recovered Your baseline strength is {self.baseline}, your current p.b is {self.pb}"
-
-    @property
-    def date(self):
-        return self._date
-
-    @date.setter
-    def date(self, inj_date):
-        if inj_date != 0:
-            inj_date = str(inj_date)
-            d_t = datetime.strptime(str(inj_date), "%Y-%m-%d").date()
-
-            self._date = d_t
-
-    @property
-    def name(self):
-        return self._name
-
-    @name.setter
-    def name(self, name):
-        if not name:
-            raise ValueError("Not Name")
-        else:
-            self._name = name
-
-    def lookup_user(self):
-        self.temp = self.dbb.lookup()
-        if self.temp:
-            return self.login(self.temp)
-            
-        else:
-            return False
-            diagnosis = Diagnose(self)
-            self.get_diagnosis()
-            self.lookup_user()
-
-    def login(self, existing):
-        (
-            self.id,
-            self.name,
-            self.date,
-            self.grade,
-            self.hand,
-            self.finger,
-            self.pulleys,
-            self.baseline,
-            self.pb,
-        ) = existing
-        self.since_inj = ((date.today()) - (self.date)).days
-        self.phase = Phase(self.since_inj, self.grade)
-        self.sched_exp = self.phase.rehab_progress / self.phase.rehab_phase_length
-        self.graph = f"{self.id}plot.png"
-        #self.db.self.login(existing)
-        return True
-
-    def recovery_sched(self):
-        if len(self.phase.current_phase) > 1:
-            return f"It's been {self.since_inj} days, you're between the {self.phase.current_phase[0]} and {self.phase.current_phase[1]} phase.\n\n If you're feeling good you should be feeling {self.phase.physical_characteristics[1]}.\n\n Otherwise you might still feel {self.phase.physical_characteristics[0]}.\n\n You should still be making sure you {self.phase.precautions[0]}.\n\n But to recover you could start to {self.phase.recovery_activities[1]}."
-        else:
-            return f"It's been {self.since_inj} days, you're in the {self.phase.current_phase[0]} phase.\n\n You should be feeling {self.phase.physical_characteristics[0]}.\n\n You should be making sure you {self.phase.precautions[0]}.\n\n To recover you should be {self.phase.recovery_activities[0]}."
-
-    def get_diagnosis(self):
-
-        # give info
-        print(
-            f"Hello {self.name.title()}\nLets get some information from you to help tailor your rehab. \n\nWe need to find out when you were injured, where and how bad it is.\n\nFollow the interactive prompts to fill us in..."
-        )
-
-        # get date
-        while True:
-            inj_date = input("Injury Date (DD/MM/YYYY) (leave blank to use now)... ")
-            if not inj_date:
-                self.date = date.today()
-                print("Ok, i'm using today.")
-                break
-            else:
-                try:
-                    day, month, year = inj_date.strip().split("/")
-                    self.date = date(int(year), int(month), int(day)).isoformat()
-                    break
-                except ValueError:
-                    response = input(
-                        "Hmm, I didn't recognise that date, Enter 'y' to try again? (or enter any key to use today)..."
-                    )
-                    if response == "y":
-                        print(
-                            "Okay, lets try again, make sure you use the specified date format (use '/' to seperate."
-                        )
-                        continue
-                    else:
-                        self.date = date.today()
-                        print("Okay, i'll use today's date.")
-                        break
-
-        # hand
-        while True:
-            hand = (
-                input("Which hand, Left or Right? (hint: type 'l' or 'r')... ")
-                .lower()
-                .strip()
-            )
-            if hand == "left" or hand == "l":
-                self.hand = "left"
-                break
-            elif hand == "right" or hand == "r":
-                self.hand = "right"
-                break
-            else:
-                print("usage: l or r.")
-                continue
-
-        # finger
-        while True:
-            finger = int(
-                input(
-                    "Which finger is it? (where 2 is your index finger and 5 is your pinky)... "
-                ).strip()
-            )
-            if finger in range(2, 6):
-                self.finger = finger
-                break
-            else:
-                print(
-                    "usage: '2' - (index), '3' - (middle), '4' - (ring), '5' - (pinky)."
-                )
-                continue
-
-        # pulleys #a1 bug
-        while True:
-            try:
-                num = int(input("How many pulleys are affected? "))
-                if num in range(1, 4):
-                    self.num = num
-                    for n in range(num):  # while len(user.pulleys) < user.num:
-                        pulley = int(input("Pulley affected: A"))
-                        if pulley in range(2, 5):
-                            if pulley in self.pulleys:
-                                print("You have already added, that pulley")
-                            else:
-                                severity = int(
-                                    input(
-                                        "How bad is it, on a scale of 1 to 3;\n1 - Minor Tear,\n2 - Major Tear,\n3 - Complete Rupture\nSeverity: "
-                                    )
-                                )
-                                if severity in range(1, 4):
-                                    self.pulleys[n] = {
-                                        "pulley": pulley,
-                                        "severity": severity,
-                                    }
-
-                    break
-            except ValueError:
-                print(
-                    "Typically climbing related finger injuries affect between at least one and maximum three pulleys, including the A2, A3 and A4, if this doesn't describe your injury then this program will not help you, hit 'Ctrl+C' to exit the program"
-                )
-                continue
-
-        # severity
-        if len(self.pulleys) == 1:
-            if self.pulleys[0]["severity"] == 1:
-                print("You have a Grade 1 finger injury")
-                self.grade = 1
-            elif self.pulleys[0]["severity"] == 2:
-                print("You have a Grade 2 finger injury")
-                self.grade = 2
-            elif self.pulleys[0]["severity"] == 3:
-                print("You have a Grade 3 finger injury")
-                self.grade = 3
-            else:
-                print("wrong number of injuries")
-        elif len(self.pulleys) in range(2, 4):
-            ruptures = 0
-            for pulley in self.pulleys:
-                if self.pulleys[pulley]["severity"] == 3:
-                    ruptures += 1
-            if ruptures > 1:
-                print("You have a grade 4 finger injury")
-                self.grade = 4
-            else:
-                print("You have a grade 3 finger injury")
-                self.grade = 3
-        print(
-            "Grade 1: Minor tear,\nGrade 2: Major tear,\nGrade 3: Single rupture or multiple pulley tears,\nGrade 4: Multiple ruptures"
-        )
-        self.dbb.diagnosis()
-
-    def metrics_info(self):
-        return (
-            f"Your baseline strength is {self.baseline}, your current p.b is {self.pb}"
-        )
-
-    def print_graph(self, show=True):
-        # sets, time, max_weight, success_rate, date #baseline
-        results = self.dbb.progress()
-        dates = []
-        max_weights = [
-            0,
-        ]
-        success_rates = [
-            0,
-        ]
-        sets = [
-            0,
-        ]
-        exp_prog = []
-
-        for result in results:
-            if len(dates) == 0:
-                dates = [
-                    (date.fromisoformat(result[0]) - self.date).days - 1,
-                ]
-            if result[3] > max_weights[-1]:
-
-                dates.append((date.fromisoformat(result[0]) - self.date).days)
-                sets.append(result[1])
-                time = result[2]
-                max_weights.append(result[3])
-                success_rates.append(result[4])
-
-        days = list(range(dates[0], dates[len(dates) - 1]))
-        for day in days:
-            exp = day / self.phase.rehab_phase_length
-            exp_prog.append(self.baseline * exp)
-
-        plt.plot(
-            dates,
-            max_weights,
-            color="red",
-            linestyle="dashed",
-            linewidth=3,
-            marker="*",
-            markerfacecolor="green",
-            markersize=10,
-            label="max-weight progression",
-        )
-        # plt.errorbar(dates, max_weights, yerr=sets, fmt='o', ecolor='green', color='green')
-        plt.axhline(y=self.baseline, color="red", linestyle="--", label="baseline")
-        plt.plot(days, exp_prog, label="expected progress")
-
-        plt.xlabel("Days Since Injury")
-        plt.ylabel("Max Weight")
-        plt.title("Weights over time")
-        plt.legend()
-        plt.savefig(f"{self.id}plot.png", bbox_inches="tight")
-        if show:
-            plt.show()
-
-    def progress_info(self):
-        last_sesh = self.dbb.last_sesh()
-        if not self.baseline:
-            self.test_baseline()
-        try:
-            progress = self.pb / self.baseline
-        except ZeroDivisionError:
-            progress = 0
-        todays_wt = round(self.baseline * self.sched_exp)
-        if self.since_inj > 2:
-            if last_sesh:
-                return f"Okay {self.name.title()}, it's been {self.since_inj} days since your injury.\n\nAt this stage you might expect to be using around {todays_wt}kg ({round(self.sched_exp * 100)}% of your baseline, which was {self.baseline}kgs).\n\nYour last session was on {last_sesh[0]}, and your max was {last_sesh[1]}kg.\n\nYour personal best is {self.pb}kg, thats {(progress)*100}% of your baseline measurement, which was {self.baseline}kg\n"
-            else:
-                return f"Okay {self.name.title()}, it's been {self.since_inj} days since your injury, this is your first session, try to take it really slow\n"
-        else:
-            return "Okay take it easy, you need to wait for the acute phase to pass, come back in 3-5 days"
-        #=dt.strftime("%d-%B-%Y") 
-
-class Dbb(User):
-    def __init__(self, user):
-        self.id = user.id
-        self.name = user.name
-    
-    def lookup(self):
-        self.create_tables()
-        info = db.execute(
-            "SELECT user_id, name, injury_date, injury_grade, hand, finger, structures, baseline, pb FROM users WHERE name = ?",
-            (self.name,),
-        ).fetchone()
-        if info:
-            self.login(info)
-            return info
-        else:
-            return False
-
-    def progress(self):
-        return db.execute(
-            "SELECT activity_date, sets, time, max_weight, success_rate FROM rehab WHERE user_id = ?",
-            (self.id,),
-        ).fetchall()
-
-    def log_rehab(self, activity):
-        db.execute(
-            "INSERT INTO rehab (user_id, activity_date, sets, time, max_weight, success_rate, log) VALUES (?, ?, ?, ?, ?, ?, ?)",
-            (
-                self.id,
-                date.today(),
-                activity["sets"],
-                activity["time"],
-                activity["max weight"],
-                (activity["success rate"]),
-                str(activity["workout log"]),
-            ),
-        )
-        conn.commit()
-
-    def update_pb(self, pb):
-        db.execute(
-            "UPDATE users SET pb = ? WHERE user_id = ?",
-            (
-                pb,
-                self.id,
-            ),
-        )
-        conn.commit()
-
-    def update_baseline(self, baseline):
-        db.execute(
-            "UPDATE users SET baseline = ? WHERE user_id = ?",
-            (
-                baseline,
-                self.id,
-            ),
-        )
-        conn.commit()
-
-    def diagnosis(self):
-        db.execute(
-            "INSERT INTO users (name, injury_grade, hand, finger, structures, injury_date) VALUES (?, ?, ?, ?, ?, ?)",
-            (
-                self.name,
-                self.grade,
-                self.hand,
-                self.finger,
-                str(self.pulleys),
-                self.date,
-            ),
-        )
-        conn.commit()
-
-    def last_sesh(self):
-        return db.execute(
-            "SELECT activity_date, max_weight FROM rehab WHERE user_id = ? ORDER BY activity_date DESC, max_weight DESC LIMIT 1",
-            (self.id,),
-        ).fetchone()
-
-    def create_tables(self):
-        db.execute(
-            "CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY ASC AUTOINCREMENT, name TEXT NOT NULL, injury_date TEXT NOT NULL DEFAULT CURRENT_DATE, injury_grade INTEGER, hand TEXT, finger INTEGER, structures TEXT, baseline REAL DEFAULT 0, pb REAL DEFAULT 0)"
-        )
-        db.execute(
-            "CREATE TABLE IF NOT EXISTS rehab (activity_id INTEGER PRIMARY KEY ASC AUTOINCREMENT, user_id REFERENCES users (user_id), activity_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, sets INTEGER, time INTEGER, max_weight REAL, success_rate REAL, log TEXT)"
-        )
-"""
 
 
 def exit_script(dbb):
