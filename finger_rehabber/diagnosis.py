@@ -16,10 +16,6 @@ class Diagnose:
         print(self.name)
         self.get_date()
             
-        
-        # parent.notebook_diagnosis
-        
-
     def get_date(self):
                 
         self.parent.recovery_info.set(
@@ -36,7 +32,7 @@ class Diagnose:
             # str=dt.strftime("%d-%m-%Y") # changing the format 
             l1.config(text=dt)
             self.date = dt
-            print(self.date)
+            #print(self.date)
             
             cal.grid_forget()
             l1.grid_forget()
@@ -124,12 +120,6 @@ class Diagnose:
         b1.grid(row=5,column=0,)
 
     def submit_diagnosis(self):
-        """self.parent.user.grade = self.grade
-        self.parent.user.hand = self.hand
-        self.parent.user.finger = self.finger
-        self.parent.user.pulleys = self.pulley
-        self.parent.user.date = self.date"""
-
         dbbb = Dbb(self)
         dbbb.diagnosis(self.name, self.grade, self.hand, self.finger, str(self.pulleys), self.date,)
         dbbb.exit_script()

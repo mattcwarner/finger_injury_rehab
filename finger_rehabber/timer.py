@@ -17,16 +17,16 @@ class Timer:
         self.f.grid(column=0, row=0, sticky=(N,E,S,W))
         self.f.columnconfigure(0, weight=1)
         self.f.rowconfigure(0, weight=1)
-        self.st_btn = ttk.Button(self.f, text="Start", command=lambda: self.countdown())
+        self.st_btn = ttk.Button(self.f, text="Start", command=lambda: self.countdown(self.n))
         self.st_btn.grid(column=0, row=1)
         self.st_btn.focus()
         self.secs = StringVar()
         self.secs.set(f"{self.n} seconds, ready?")
-        self.secs_label = ttk.Label(self.f, textvariable=self.secs)
+        self.secs_label = ttk.Label(self.f, textvariable=self.secs, font=('Arial', 50))
         self.secs_label.grid(column=0, row=0)
         self.win.mainloop()
 
-    def countdown(self):
+    def countdown(self, n):
         self.st_btn.config(text="Reset")
         
         seq = [
@@ -39,10 +39,10 @@ class Timer:
             self.win.update()
             time.sleep(1)
             
-        while self.n:
-            self.secs.set(str(self.n))
+        while n:
+            self.secs.set(str(n))
             self.win.update()
-            self.n -= 1
+            n -= 1
             time.sleep(1)
             
         self.secs.set("Time Up")

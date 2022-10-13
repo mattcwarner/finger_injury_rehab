@@ -9,21 +9,33 @@ import numpy as np
 class User:
     def __init__(self, name):
         self.name = name
-        self.hand = None
-        self.finger = 0
-        self.pulleys = {}
-        self.grade = 0
-        self.date = 0
-        self.id = 0
-        self.baseline = 0
-        self.pb = 0
-        self.graph = f"{self.id}plot.png"
-        self.temp = None
-        self.since_inj = 0
-        self.sched_exp = 0
-        self.phase = None
         self.dbb = Dbb(self)
-        self.rehab_stage = 0
+        if not self.login():
+            self.exists = False
+        
+    def login(self):
+        tmp = self.dbb.lookup()
+        if not tmp:
+            return False
+        else:
+            (
+                self.id,
+                self.name,
+                self.date,
+                self.grade,
+                self.hand,
+                self.finger,
+                self.pulleys,
+                self.baseline,
+                self.pb,
+                self.rehab_stage,
+            ) = tmp
+            self.since_inj = ((date.today()) - (self.date)).days
+            self.phase = Phase(self.since_inj, self.grade)
+            self.sched_exp = self.phase.rehab_progress / self.phase.rehab_phase_length
+            self.graph = f"{self.id}plot.png"
+            self.exists = True
+            return True
 
     def __str__(self):
         return f"{self.name.title()}: grade {self.grade} injury to the {self.hand}, {self.finger} digit, on {self.date}, {self.since_inj} days ago so you should be roughly {self.sched_exp*100:.2f}% recovered Your baseline strength is {self.baseline}, your current p.b is {self.pb}"
@@ -37,9 +49,22 @@ class User:
         if wt == None:
             self._baseline = 0
         elif int(wt) > 0:
-            self._baseline = wt
+            self._baseline = int(wt)
         else:
             self._baseline = 0
+
+    @property
+    def rehab_stage(self):
+        return self._rehab_stage
+
+    @rehab_stage.setter
+    def rehab_stage(self, stage):
+        if stage == None:
+            self._rehab_stage = 0
+        elif int(stage) in range(4):
+            self._rehab_stage = int(stage)
+        else:
+            self._rehab_stage = 0
 
     @property
     def date(self):
@@ -63,32 +88,6 @@ class User:
             raise ValueError("Not Name")
         else:
             self._name = name
-
-    def lookup_user(self):
-        tmp = self.dbb.lookup()
-        if tmp:
-            return self.login(tmp)
-        else:
-            return False
-
-    def login(self, existing):
-        (
-            self.id,
-            self.name,
-            self.date,
-            self.grade,
-            self.hand,
-            self.finger,
-            self.pulleys,
-            self.baseline,
-            self.pb,
-            self.rehab_stage,
-        ) = existing
-        self.since_inj = ((date.today()) - (self.date)).days
-        self.phase = Phase(self.since_inj, self.grade)
-        self.sched_exp = self.phase.rehab_progress / self.phase.rehab_phase_length
-        self.graph = f"{self.id}plot.png"
-        return True
 
     def recovery_sched(self):
         if len(self.phase.current_phase) > 1:
@@ -118,7 +117,7 @@ class User:
         if self.pb >= self.baseline and self.baseline > 0:
             if self.rehab_stage in range(0, 2):
                 self.rehab_stage += 1
-                self.dbb.update_rehab_stage()
+                self.dbb.update_stage()
                 self.pb = 0
                 self.dbb.update_pb()
                 self.baseline = 0
@@ -128,9 +127,9 @@ class User:
                 self.dbb.update_rehab_stage()
 
         if not self.baseline:
-            return f"You're ready to move into the next phase of your rehab, which is {stages[self.rehab_stage]}.\nPlease record a new baseline for your current rehab stage"
+            return f"You're ready to move into the next phase of your rehab, which is {stages[self.rehab_stage][0]}.\nPlease record a new baseline for your current rehab stage"
 
-        return f"You are in the {stages[self.rehab_stage][0]} stage of rehab, your {stages[self.rehab_stage][0]} baseline strength is {self.baseline}, your your current p.b is {self.pb}.\nPlease continue progressively load {stages[self.rehab_stage][1]}"
+        return f"You are in the {stages[self.rehab_stage][0]} stage of rehab, your {stages[self.rehab_stage][0]} baseline strength is {self.baseline}kg, your current {stages[self.rehab_stage][0]} P.B is {self.pb}.\nPlease continue progressively load {stages[self.rehab_stage][1]}"
 
     def metrics_info(self):
         return (
@@ -245,13 +244,12 @@ class User:
         # =dt.strftime("%d-%B-%Y")
 
 
-class Dbb(User):
+class Dbb():
     def __init__(self, user):
         # connect to db
         self.conn = sqlite3.connect("../fingers.db")
         self.db = self.conn.cursor()
         self.create_tables()
-        self.name = user.name
         self.user = user
 
     def exit_script(self):
@@ -261,10 +259,9 @@ class Dbb(User):
         self.create_tables()
         info = self.db.execute(
             "SELECT user_id, name, injury_date, injury_grade, hand, finger, structures, baseline, pb, rehab_stage FROM users WHERE name = ?",
-            (self.name,),
+            (self.user.name,),
         ).fetchone()
         if info:
-            self.login(info)
             return info
         else:
             return False
@@ -280,7 +277,7 @@ class Dbb(User):
             "INSERT INTO rehab (user_id, activity_date, sets, time, max_weight, success_rate, log, rehab_stage) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             (
                 self.user.id,
-                date.today(),
+                activity["activity date"],
                 activity["sets"],
                 activity["time"],
                 activity["max weight"],
@@ -296,28 +293,27 @@ class Dbb(User):
             "UPDATE users SET pb = ? WHERE user_id = ?",
             (
                 self.user.pb,
-                self.id,
+                self.user.id,
             ),
         )
         self.conn.commit()
 
-    def update_rehab_stage(self):
+    def update_stage(self):
         self.db.execute(
-            "UPDATE users SET pb = ? WHERE user_id = ?",
+            "UPDATE users SET rehab_stage = ? WHERE user_id = ?",
             (
                 self.user.rehab_stage,
-                self.id,
+                self.user.id,
             ),
         )
         self.conn.commit()
 
     def update_baseline(self):
-        print(f"update bs to {self.user.baseline}")
         self.db.execute(
             "UPDATE users SET baseline = ? WHERE user_id = ?",
             (
                 self.user.baseline,
-                self.id,
+                self.user.id,
             ),
         )
         self.conn.commit()
@@ -347,5 +343,5 @@ class Dbb(User):
             "CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY ASC AUTOINCREMENT, name TEXT NOT NULL, injury_date TEXT NOT NULL DEFAULT CURRENT_DATE, injury_grade INTEGER, hand TEXT, finger INTEGER, structures TEXT, baseline REAL DEFAULT 0, pb REAL DEFAULT 0, rehab_stage INT DEFAULT 0)"  # , h_baseline REAL DEFAULT 0, h_pb REAL DEFAULT 0, f_baseline REAL DEFAULT, f_pb REAL DEFAULT 0)"
         )
         self.db.execute(
-            "CREATE TABLE IF NOT EXISTS rehab (activity_id INTEGER PRIMARY KEY ASC AUTOINCREMENT, user_id REFERENCES users (user_id), activity_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, sets INTEGER, time INTEGER, max_weight REAL, success_rate REAL, log TEXT)"  # , rehab_stage INT DEFAULT 0)"
+            "CREATE TABLE IF NOT EXISTS rehab (activity_id INTEGER PRIMARY KEY ASC AUTOINCREMENT, user_id REFERENCES users (user_id), activity_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, sets INTEGER, time INTEGER, max_weight REAL, success_rate REAL, log TEXT, rehab_stage INT DEFAULT 0)"
         )
