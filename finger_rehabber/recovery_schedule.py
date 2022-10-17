@@ -22,22 +22,22 @@ class Phase:
     # tuples are start and finish of each phase of recovery from the day of injury
     severity = {
         1: {
-            "acute": (1, 5),
+            "acute": (0, 5),
             "proliferation": (3, 42),
             "remodelling": (28, 183),
         },
         2: {
-            "acute": (1, 7),
+            "acute": (0, 7),
             "proliferation": (5, 50),
             "remodelling": (30, 190),
         },
         3: {
-            "acute": (1, 14),
+            "acute": (0, 14),
             "proliferation": (10, 60),
             "remodelling": (40, 200),
         },
         4: {
-            "acute": (1, 30),
+            "acute": (0, 30),
             "proliferation": (25, 100),
             "remodelling": (6, 250),
         },
@@ -54,6 +54,7 @@ class Phase:
                 start, finish = Phase.severity[grade][phase]
                 if since_inj in range(start, finish):
                     self.current_phase.append(phase)
+                    self.rehab_length = finish
         for phase in self.current_phase:
             self.physical_characteristics.append(
                 Phase.recovery_phases[phase]["physical characteristics"]
@@ -68,6 +69,7 @@ class Phase:
             - Phase.severity[grade]["remodelling"][0]
         )
         self.rehab_progress = abs(self.rehab_start_day)
+        
 
         def __str__(self):
             return "Hello"

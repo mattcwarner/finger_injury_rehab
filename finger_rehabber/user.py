@@ -32,7 +32,7 @@ class User:
             ) = tmp
             self.since_inj = ((date.today()) - (self.date)).days
             self.phase = Phase(self.since_inj, self.grade)
-            self.sched_exp = self.phase.rehab_progress / self.phase.rehab_phase_length
+            self.sched_exp = self.since_inj / self.phase.rehab_length
             self.graph = f"{self.id}plot.png"
             self.exists = True
             return True
@@ -131,11 +131,6 @@ class User:
 
         return f"You are in the {stages[self.rehab_stage][0]} stage of rehab, your {stages[self.rehab_stage][0]} baseline strength is {self.baseline}kg, your current {stages[self.rehab_stage][0]} P.B is {self.pb}.\nPlease continue progressively load {stages[self.rehab_stage][1]}"
 
-    def metrics_info(self):
-        return (
-            f"Your baseline strength is {self.baseline}, your current p.b is {self.pb}"
-        )
-
     def print_graph(self, show=True):
         # sets, time, max_weight, success_rate, date #baseline
         results = self.dbb.progress()
@@ -153,7 +148,7 @@ class User:
         #success_rates = [0,]
         #sets = [0,]
 
-        for result in results:
+        for num, result in enumerate(results):
             #try needed for back compatability with my db
             try:
                 stage = result[5]
@@ -171,20 +166,23 @@ class User:
                     o_weights.append(result[3])
                     #success_rates.append(result[4])
             elif stage == 1:
-                h_dates = [o_dates[-1],]
-                h_weights = [o_weights[-1],]
-                h_dates.append((date.fromisoformat(result[0]) - self.date).days)
-                h_weights.append(result[3])
+                if results[num][3] > results[num-1][3]:
+                    h_dates = [o_dates[-1],]
+                    h_weights = [o_weights[-1],]
+                    h_dates.append((date.fromisoformat(result[0]) - self.date).days)
+                    h_weights.append(result[3])
             elif stage == 2:
-                f_dates = [h_dates[-1],]
-                f_weights = [h_weights[-1],]
-                f_dates.append((date.fromisoformat(result[0]) - self.date).days)
-                f_weights.append(result[3])
+                if results[num][3] > results[num-1][3]:
+                    f_dates = [h_dates[-1],]
+                    f_weights = [h_weights[-1],]
+                    f_dates.append((date.fromisoformat(result[0]) - self.date).days)
+                    f_weights.append(result[3])
             else:
-                b_dates = [f_dates[-1],]
-                b_weights = [f_weights[-1],]
-                b_dates.append((date.fromisoformat(result[0]) - self.date).days)
-                b_weights.append(result[3])
+                if results[num][3] > results[num-1][3]:
+                    b_dates = [f_dates[-1],]
+                    b_weights = [f_weights[-1],]
+                    b_dates.append((date.fromisoformat(result[0]) - self.date).days)
+                    b_weights.append(result[3])
 
         if len(o_dates) == 0:
             o_dates = [

@@ -25,7 +25,9 @@ WIN_HEI = 500
 # improve  data
 # catch exceptions
 # clean folders
-
+# name not none to start
+# progress info
+# timer bind enter
 
 def main():
 
@@ -41,14 +43,21 @@ def main():
 class MainWindow:
     def __init__(self, root):
         self.root = root
+        self.root.bind('<Escape>', lambda e: self.exit_script())
         self.user = None
+        self.set_vars()
+        self.mainframe()
+        self.login_window()
+        self.notebook()
+        self.WIN_WID = WIN_WID
+
+    def set_vars(self):
         self.logged_in = False
         self.warmed_up = False
         self.user_name = StringVar()
         # self.user_name.set(None)
         self.user_note = StringVar()
         self.user_note.set("No one logged in")
-
         self.diagnosis_info = StringVar()
         self.diagnosis_info.set("Login to see your diagnosis information")
         self.recovery_info = StringVar()
@@ -58,12 +67,6 @@ class MainWindow:
         self.progress_graph_image = None
         self.activity_info = StringVar()
         self.activity_info.set("Login to record activity")
-        self.root.bind('<Escape>', lambda e: self.exit_script())
-
-        self.mainframe()
-        self.login_window()
-        self.notebook()
-
 
     def mainframe(self):
         self.mainframe = ttk.Frame(self.root, padding=4)
@@ -144,15 +147,19 @@ class MainWindow:
 
     def login_check(self, *args):
         # try:
+        if self.logged_in:
+            self.set_vars()
         username = self.user_name.get()
-        if username != None:
+        try:
             self.user = User(username)
-            print(self.user.exists)
-            if not self.user.exists:
-                diagnosis = Diagnose(self)  # change self to frame  # get diagnosis
-            else:
-                self.populate_info()
-                self.logged_in = True
+        except ValueError:
+            self.user_note.set("Enter valid user name")
+            return
+        if not self.user.exists:
+            diagnosis = Diagnose(self)  # change self to frame  # get diagnosis
+        else:
+            self.populate_info()
+            self.logged_in = True
 
     def check_stage(self):
         if self.user.pb >= self.user.baseline and self.user.baseline > 0:
@@ -175,6 +182,7 @@ class MainWindow:
         # except:
         #    print("problem getting user info")
         self.add_graph()
+        self.activity_info.set("Log some rehab or record a baseline.")
         self.activity = Activitywindow(self.user, self, self.notebook_activity, width=WIN_WID)
     
     def add_graph(self):

@@ -1,9 +1,14 @@
 from tkinter import *
 from tkinter import ttk, messagebox
 import time
+#from pygame import mixer
+
+
 
 
 class Timer:
+    #mixer.init()
+    #sound = mixer.Sound("bell.wav")
     # rep timer
     def __init__(self, root, n):
         self.root = root
@@ -18,6 +23,7 @@ class Timer:
         self.f.columnconfigure(0, weight=1)
         self.f.rowconfigure(0, weight=1)
         self.st_btn = ttk.Button(self.f, text="Start", command=lambda: self.countdown(self.n))
+        self.win.bind("<Return>", lambda e: self.countdown((self.n)))
         self.st_btn.grid(column=0, row=1)
         self.st_btn.focus()
         self.secs = StringVar()
@@ -25,6 +31,8 @@ class Timer:
         self.secs_label = ttk.Label(self.f, textvariable=self.secs, font=('Arial', 50))
         self.secs_label.grid(column=0, row=0)
         self.win.mainloop()
+        
+        
 
     def countdown(self, n):
         self.st_btn.config(text="Reset")
@@ -37,9 +45,12 @@ class Timer:
         for i in seq:
             self.secs.set(i)
             self.win.update()
+            #Timer.sound.play()
             time.sleep(1)
             
         while n:
+            #if n < 4:
+                #Timer.sound.play()
             self.secs.set(str(n))
             self.win.update()
             n -= 1
