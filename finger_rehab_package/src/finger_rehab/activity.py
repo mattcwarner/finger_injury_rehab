@@ -196,7 +196,7 @@ class Activitywindow():
                     messagebox.showinfo(
                         message="Well done, consider adding a little bit of weight"
                     )
-            self.log.update({f"set {self.rep + 1}": {"weight": {wt}, "success": {tick}}})
+            self.log.update({f"rep: {self.rep + 1}": {"weight": {wt}, "success": {tick}}})
             self.rep += 1
             complete = True
         timer.win.destroy()
@@ -207,19 +207,7 @@ class Activitywindow():
     def finish_activity(self):
         self.recording.destroy()
         if self.record_mode == "activity":
-            try:
-                self.success_rate = (self.attempts / self.success) * 100
-            except ZeroDivisionError:
-                self.success_rate = 0
-            self.user.dbb.log_rehab(
-                {
-                    "max weight": self.max_wt,
-                    "success rate": self.success_rate,
-                    "time": self.seconds,
-                    "sets": self.attempts,
-                    "workout log": str(self.log),
-                    "activity date": self.act_date,
-                } )
+            self.r = 1
             if self.max_wt > self.user.pb:
                 messagebox.showinfo(
                     message=(
@@ -230,9 +218,24 @@ class Activitywindow():
                 self.user.dbb.update_pb()
                 #self.check_stage()
         else:
+            self.r = 0
             if self.max_wt > self.user.baseline:
                 self.user.baseline = self.max_wt
                 self.user.dbb.update_baseline()
+        try:
+            self.success_rate = (self.attempts / self.success) * 100
+        except ZeroDivisionError:
+            self.success_rate = 0
+        self.user.dbb.log_rehab(
+            {
+                "max weight": self.max_wt,
+                "success rate": self.success_rate,
+                "time": self.seconds,
+                "reps": self.attempts,
+                "workout log": str(self.log),
+                "activity date": self.act_date,
+                "rehab": self.r
+            } )
         self.user.print_graph(show=False)
         self.mainwindow.populate_info()
 

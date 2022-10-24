@@ -1,7 +1,8 @@
 from timer import Timer
 from recovery_schedule import Phase
 from diagnosis import Diagnose
-from user import User, Dbb
+from user import User
+from databaser import Dbb
 from activity import Activitywindow
 
 import sqlite3
@@ -25,9 +26,9 @@ WIN_HEI = 500
 # improve  data
 # catch exceptions
 # clean folders
-# name not none to start
+
 # progress info
-# timer bind enter
+
 
 def main():
 
@@ -36,6 +37,7 @@ def main():
     # root.minsize(200, 200)
     root.geometry(f"{WIN_WID+20}x{WIN_HEI}-5-5")
     app = MainWindow(root)
+
     root.mainloop()
     app.exit_script()
 
@@ -43,6 +45,7 @@ def main():
 class MainWindow:
     def __init__(self, root):
         self.root = root
+        self.root.protocol("WM_DELETE_WINDOW", lambda: self.exit_script())
         self.root.bind('<Escape>', lambda e: self.exit_script())
         self.user = None
         self.set_vars()
@@ -162,7 +165,7 @@ class MainWindow:
             self.logged_in = True
 
     def check_stage(self):
-        if self.user.pb >= self.user.baseline and self.user.baseline > 0:
+        if self.user.pb >= self.user.baseline and self.user.baseline > 0 and self.user.rehab_stage < 3:
             messagebox.showinfo(
                 message=(
                     f"Nice one, you've caught up to your baseline, it's time to move on to the next phase of recovery."
@@ -213,6 +216,8 @@ class MainWindow:
     def exit_script(self):
         if self.user:
             self.user.dbb.conn.close()
+        if self.root:
+            self.root.destroy()
         sys.exit("Thanks for coming")
 
 

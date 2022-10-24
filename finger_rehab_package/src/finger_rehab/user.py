@@ -1,6 +1,6 @@
 from datetime import datetime, date, timedelta
 from recovery_schedule import Phase
-import sqlite3
+from databaser import Dbb
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -124,95 +124,69 @@ class User:
                 self.dbb.update_baseline()
             else:
                 self.rehab_stage = 3
-                self.dbb.update_rehab_stage()
+                self.dbb.update_stage()
+        prev_info_str = ""
+        if self.rehab_stage > 0:
+            prev_info_str += "In previous stages, these were your records:\n"
+            for stage in range(self.rehab_stage):
+                baseline =  (self.dbb.get_max(stage, mode=0)[0][0])
+                pb = ((self.dbb.get_max(stage))[0][0])
+                prev_info_str += f"{stages[stage][0].title()}, Baseline: {baseline}, PB: {pb}.\n"
+        try:
+            progress = self.pb / self.baseline
+        except ZeroDivisionError:
+            progress = 0
 
         if not self.baseline:
-            return f"You're ready to move into the next phase of your rehab, which is {stages[self.rehab_stage][0]}.\nPlease record a new baseline for your current rehab stage"
+            return f"You're ready to move into the next phase of your rehab, which is {stages[self.rehab_stage][0]}.\n\nThis is going to involve progressively loading {stages[self.rehab_stage][1]}.\n\n{prev_info_str}"
 
-        return f"You are in the {stages[self.rehab_stage][0]} stage of rehab, your {stages[self.rehab_stage][0]} baseline strength is {self.baseline}kg, your current {stages[self.rehab_stage][0]} P.B is {self.pb}.\nPlease continue progressively load {stages[self.rehab_stage][1]}"
+        return f"You are in the {stages[self.rehab_stage][0]} stage of rehab.\n\n Your {stages[self.rehab_stage][0]} baseline strength is {self.baseline}kg, your current {stages[self.rehab_stage][0]} P.B is {self.pb} thats {round((progress)*100)}% of your baseline measurement.\n\nContinue progressively loading {stages[self.rehab_stage][1]}.\n\n{prev_info_str}"
+
+
+
+    def progress_info(self):
+        last_sesh = self.dbb.last_sesh()
+        if not self.baseline:
+            return "We need to test your baseline to find out what to expect from you.\nHead to the activity tab to add one."
+        todays_wt = round(self.baseline * self.sched_exp)
+        if self.since_inj > 2:
+            if last_sesh:
+                return f"Okay {self.name.title()}, it's been {self.since_inj} days since your injury.\n\nAt this stage you might expect to be using around {todays_wt}kg ({round(self.sched_exp * 100)}% of your baseline.\n"
+            else:
+                return f"Okay {self.name.title()}, it's been {self.since_inj} days since your injury, this is your first session, try to take it really slow\n"
+        else:
+            return "Okay take it easy, you need to wait for the acute phase to pass, come back in 3-5 days"
+        # =dt.strftime("%d-%B-%Y")
+
 
     def print_graph(self, show=True):
-        # sets, time, max_weight, success_rate, date #baseline
-        results = self.dbb.progress()
-        o_dates = []
-        o_weights = [
-            0,
-        ]
-        h_dates = []
-        h_weights = []
-        f_dates = []
-        f_weights = []
-        b_dates = []
-        b_weights = []
-        exp_prog = []
-        #success_rates = [0,]
-        #sets = [0,]
 
-        for num, result in enumerate(results):
-            #try needed for back compatability with my db
-            try:
-                stage = result[5]
-            except:
-                stage = 0
-            if stage == 0:
-                if len(o_dates) == 0:
-                    o_dates = [
-                        (date.fromisoformat(result[0]) - self.date).days - 1,
-                    ]
-                if result[3] > o_weights[-1]:
-                    o_dates.append((date.fromisoformat(result[0]) - self.date).days)
-                    #sets.append(result[1])
-                    #time = result[2]
-                    o_weights.append(result[3])
-                    #success_rates.append(result[4])
-            elif stage == 1:
-                if results[num][3] > results[num-1][3]:
-                    h_dates = [o_dates[-1],]
-                    h_weights = [o_weights[-1],]
-                    h_dates.append((date.fromisoformat(result[0]) - self.date).days)
-                    h_weights.append(result[3])
-            elif stage == 2:
-                if results[num][3] > results[num-1][3]:
-                    f_dates = [h_dates[-1],]
-                    f_weights = [h_weights[-1],]
-                    f_dates.append((date.fromisoformat(result[0]) - self.date).days)
-                    f_weights.append(result[3])
-            else:
-                if results[num][3] > results[num-1][3]:
-                    b_dates = [f_dates[-1],]
-                    b_weights = [f_weights[-1],]
-                    b_dates.append((date.fromisoformat(result[0]) - self.date).days)
-                    b_weights.append(result[3])
+        colours = ['red', 'orange', 'green', 'blue',]
+        labels = ['single finger', 'half crimp', 'full crimp', 'both hands',]
 
-        if len(o_dates) == 0:
-            o_dates = [
-                0,
-            ]
-        days = list(range(o_dates[0], (((date.fromisoformat(results[-1][0])) - self.date).days)))
-        for day in days:
-            exp = day / (self.phase.rehab_phase_length)
-            exp_prog.append(self.baseline * exp)
+        data = {}
+        for s in range(self.rehab_stage + 1):
+            pbs = self.dbb.get_max(stage=s, mode=1)
+            dates = []
+            weights = []
+            for pb in pbs:
+                dates.append((date.fromisoformat(pb[1]) - self.date).days)
+                weights.append(pb[0]) 
+            print(weights)
+            bs = self.dbb.get_max(stage=s, mode=0)
+            bs_dates = []
+            bs_weights = []
+            for bs in bs:
+                bs_dates.append(((date.fromisoformat(bs[1]) - self.date).days))
+                bs_weights.append(bs[0])
+            bs_dates.append((date.today() - self.date).days)
+            bs_weights.append(bs_weights[-1])
 
-        plt.plot(
-            o_dates,
-            o_weights,
-            color="red",
-            linestyle="dashed",
-            linewidth=3,
-            marker="*",
-            markerfacecolor="green",
-            markersize=7,
-            label="single finger progression",
-        )
-        # plt.errorbar(dates, max_weights, yerr=sets, fmt='o', ecolor='green', color='green')
-        plt.axhline(y=self.baseline, color="red", linestyle="--", label="baseline")
-        plt.plot(days, exp_prog, label="expected progress")
-        if h_dates:
-            plt.plot(h_dates, h_weights, color='orange', linestyle='dashed', label='half crimp progression')
-        if f_dates:
-            plt.plot(f_dates, f_weights, color='green', linestyle='dashed', label='full crimp progression')
-        if b_dates:
-            plt.plot(b_dates, b_weights, color='blue', linestyle='dashed', label='training progression')
+            data[s] = {'dates': dates, 'weights': weights, 'baselines': {'dates': bs_dates, 'weights': bs_weights}}
+
+        for i in data:
+            plt.plot(data[i]['dates'], data[i]['weights'], color=colours[i], linestyle="dashed", linewidth=3, marker="*", markerfacecolor="green", markersize=7, label=labels[i],)
+            plt.plot(data[i]['baselines']['dates'], data[i]['baselines']['weights'], color=colours[i], linestyle="--")
 
 
         plt.xlabel("Days Since Injury")
@@ -223,124 +197,3 @@ class User:
         if show:
             plt.show()
 
-    def progress_info(self):
-        last_sesh = self.dbb.last_sesh()
-        if not self.baseline:
-            return "We need to test your baseline to find out what to expect from you.\nHead to the activity tab to add a baseline"
-        try:
-            progress = self.pb / self.baseline
-        except ZeroDivisionError:
-            progress = 0
-        todays_wt = round(self.baseline * self.sched_exp)
-        if self.since_inj > 2:
-            if last_sesh:
-                return f"Okay {self.name.title()}, it's been {self.since_inj} days since your injury.\n\nAt this stage you might expect to be using around {todays_wt}kg ({round(self.sched_exp * 100)}% of your baseline, which was {self.baseline}kgs).\n\nYour last session was on {last_sesh[0]}, and your max was {last_sesh[1]}kg.\n\nYour personal best is {self.pb}kg, thats {round((progress)*100)}% of your baseline measurement, which was {self.baseline}kg\n"
-            else:
-                return f"Okay {self.name.title()}, it's been {self.since_inj} days since your injury, this is your first session, try to take it really slow\n"
-        else:
-            return "Okay take it easy, you need to wait for the acute phase to pass, come back in 3-5 days"
-        # =dt.strftime("%d-%B-%Y")
-
-
-class Dbb():
-    def __init__(self, user):
-        # connect to db
-        self.conn = sqlite3.connect("../fingers.db")
-        self.db = self.conn.cursor()
-        self.create_tables()
-        self.user = user
-
-    def exit_script(self):
-        self.conn.close()
-
-    def lookup(self):
-        self.create_tables()
-        info = self.db.execute(
-            "SELECT user_id, name, injury_date, injury_grade, hand, finger, structures, baseline, pb, rehab_stage FROM users WHERE name = ?",
-            (self.user.name,),
-        ).fetchone()
-        if info:
-            return info
-        else:
-            return False
-
-    def progress(self):
-        return self.db.execute(
-            "SELECT activity_date, sets, time, max_weight, success_rate, rehab_stage FROM rehab WHERE user_id = ?",
-            (self.user.id,),
-        ).fetchall()
-
-    def log_rehab(self, activity):
-        self.db.execute(
-            "INSERT INTO rehab (user_id, activity_date, sets, time, max_weight, success_rate, log, rehab_stage) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            (
-                self.user.id,
-                activity["activity date"],
-                activity["sets"],
-                activity["time"],
-                activity["max weight"],
-                (activity["success rate"]),
-                str(activity["workout log"]),
-                self.user.rehab_stage,
-            ),
-        )
-        self.conn.commit()
-
-    def update_pb(self):
-        self.db.execute(
-            "UPDATE users SET pb = ? WHERE user_id = ?",
-            (
-                self.user.pb,
-                self.user.id,
-            ),
-        )
-        self.conn.commit()
-
-    def update_stage(self):
-        self.db.execute(
-            "UPDATE users SET rehab_stage = ? WHERE user_id = ?",
-            (
-                self.user.rehab_stage,
-                self.user.id,
-            ),
-        )
-        self.conn.commit()
-
-    def update_baseline(self):
-        self.db.execute(
-            "UPDATE users SET baseline = ? WHERE user_id = ?",
-            (
-                self.user.baseline,
-                self.user.id,
-            ),
-        )
-        self.conn.commit()
-
-    def diagnosis(self, name, grade, hand, finger, pulleys, date):
-        self.db.execute(
-            "INSERT INTO users (name, injury_grade, hand, finger, structures, injury_date) VALUES (?, ?, ?, ?, ?, ?)",
-            (
-                name,
-                grade,
-                hand,
-                finger,
-                pulleys,
-                date,
-            ),
-        )
-        self.conn.commit()
-
-    def last_sesh(self):
-        return self.db.execute(
-            "SELECT activity_date, max_weight, rehab_stage FROM rehab WHERE user_id = ? ORDER BY activity_date DESC, max_weight DESC LIMIT 1",
-            (self.user.id,),
-        ).fetchone()
-
-    def create_tables(self):
-        self.db.execute(
-            "CREATE TABLE IF NOT EXISTS users (user_id INTEGER PRIMARY KEY ASC AUTOINCREMENT, name TEXT NOT NULL, injury_date TEXT NOT NULL DEFAULT CURRENT_DATE, injury_grade INTEGER, hand TEXT, finger INTEGER, structures TEXT, baseline REAL DEFAULT 0, pb REAL DEFAULT 0, rehab_stage INT DEFAULT 0)"  # , h_baseline REAL DEFAULT 0, h_pb REAL DEFAULT 0, f_baseline REAL DEFAULT, f_pb REAL DEFAULT 0)"
-        )
-        self.db.execute(
-            "CREATE TABLE IF NOT EXISTS rehab (activity_id INTEGER PRIMARY KEY ASC AUTOINCREMENT, user_id REFERENCES users (user_id), activity_date TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, sets INTEGER, time INTEGER, max_weight REAL, success_rate REAL, log TEXT, rehab_stage INT DEFAULT 0)"
-        )
-        self.db.execute("CREATE INDEX IF NOT EXISTS name_index ON users (name)")
