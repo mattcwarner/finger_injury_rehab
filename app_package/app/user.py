@@ -4,6 +4,7 @@ from databaser import Dbb
 
 import matplotlib.pyplot as plt
 import numpy as np
+from pathlib import Path
 
 
 class User:
@@ -115,7 +116,10 @@ class User:
 
         stage_info = "These are your stage records:\n"
         for stage in Phase.stages:
+            q = self.dbb.get_max(stage, mode=0, date=0)
+            print(q)
             try:
+                
                 baseline = (self.dbb.get_max(stage, mode=0, date=0 )[0])
             except TypeError:
                 baseline = 0
@@ -163,7 +167,7 @@ class User:
             weights = []
             if not pbs:
                 print("no pbs")
-                dates = [0,]
+                dates = [(date.today() - self.date).days,]
                 weights = [0,]
             else:
                 for pb in pbs:
@@ -175,7 +179,7 @@ class User:
             bs_weights = []
             if not bs:
                 print("no bs")
-                bs_dates = [0,]
+                bs_dates = [(date.today() - self.date).days,]
                 bs_weights = [0,]
             else:
                 for b in bs:
@@ -195,7 +199,10 @@ class User:
         plt.ylabel("Max Weight")
         plt.title("Weights over time")
         plt.legend()
-        plt.savefig(f"{self.id}plot.png", bbox_inches="tight")
+        
+        fname = f"{self.id}plot.png"
+        path = Path.cwd().parent / ('graphs') / fname
+        plt.savefig(path, bbox_inches="tight")
         if show:
             plt.show()
 
