@@ -1,5 +1,0 @@
-sqlite3
-matplotlib
-tkinter
-pillow
-tkcalendar
