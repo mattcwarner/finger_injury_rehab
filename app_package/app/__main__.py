@@ -45,27 +45,36 @@ def main():
 
 class MainWindow:
     WIN_WID = WIN_WID
+
     def __init__(self, root):
         self.root = root
         self.root.protocol("WM_DELETE_WINDOW", lambda: self.exit_script())
-        self.root.bind('<Escape>', lambda e: self.exit_script())
-        
+        self.root.bind("<Escape>", lambda e: self.exit_script())
+
         self.user = None
         self.set_vars()
 
-    
         self.create_mainframe()
         self.create_menu()
         self.create_login_window()
         self.create_notebook()
-       
 
     def create_menu(self):
         self.menubar = Menu(self.root)
-        self.menu_users = Menu(self.menubar, tearoff=0)
-        self.menubar.add_cascade(menu=self.menu_users, label="Users")
-        self.menu_users.add_command(label="Change User", command=lambda: self.__init__(self.root))
-        self.root['menu'] = self.menubar
+        self.root.config(menu=self.menubar)
+
+        self.menu_options = Menu(self.menubar, tearoff=0)
+        self.menubar.add_cascade(menu=self.menu_options, label="Options")
+        self.menu_options.add_command(
+            label="Change User", command=lambda: self.__init__(self.root)
+        )
+        self.menu_options.add_command(
+            label="Refresh",
+            command=lambda: self.populate_info()
+            if self.logged_in
+            else self.__init__(self.root),
+        )
+
 
     def set_vars(self):
         self.logged_in = False
@@ -89,8 +98,8 @@ class MainWindow:
         self.mainframe.grid(column=0, row=0, sticky=(N, E, S, W))
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
-        #mainframe_label = ttk.Label(self.mainframe, text="Rehabilitate your finger injury", justify="center")
-        #mainframe_label.grid(column=0, row=1, sticky=(N, E, S, W))
+        # mainframe_label = ttk.Label(self.mainframe, text="Rehabilitate your finger injury", justify="center")
+        # mainframe_label.grid(column=0, row=1, sticky=(N, E, S, W))
 
     def create_notebook(self):
         self.notebook = ttk.Notebook(self.mainframe)
@@ -143,13 +152,16 @@ class MainWindow:
 
     def create_login_window(self):
         self.login_window = ttk.Frame(
-            self.mainframe, borderwidth=5, relief="ridge", width=WIN_WID,
+            self.mainframe,
+            borderwidth=5,
+            relief="ridge",
+            width=WIN_WID,
         )
         self.login_window.grid(column=0, row=1, sticky=(N, E, S, W))
-        #self.mainframe.columnconfigure(0, weight=0)
-        #self.mainframe.rowconfigure(1, weight=1)
-        #login_label = ttk.Label(self.login_window, text="User Login")
-        #login_label.grid(column=0, row=0, sticky=(N, E, S, W))
+        # self.mainframe.columnconfigure(0, weight=0)
+        # self.mainframe.rowconfigure(1, weight=1)
+        # login_label = ttk.Label(self.login_window, text="User Login")
+        # login_label.grid(column=0, row=0, sticky=(N, E, S, W))
         user_name_entry = ttk.Entry(self.login_window, textvariable=self.user_name)
         user_name_entry.grid(column=0, row=0, sticky=(N, E, S, W), padx=5, pady=5)
         user_name_entry.focus()
@@ -158,7 +170,9 @@ class MainWindow:
         )
         login_button.grid(column=1, row=0, sticky=(N, E, S, W), padx=5, pady=5)
         self.root.bind("<Return>", lambda e: self.login_check())
-        user_label = ttk.Label(self.login_window, textvariable=self.user_note, justify='center')
+        user_label = ttk.Label(
+            self.login_window, textvariable=self.user_note, justify="center"
+        )
         user_label.grid(column=0, row=1, sticky=(N, E, S, W), columnspan=2)
 
     def login_check(self, *args):
@@ -178,9 +192,12 @@ class MainWindow:
             self.logged_in = True
         self.login_window.grid_forget()
 
-
     def check_stage(self):
-        if self.user.pb >= self.user.baseline and self.user.baseline > 0 and self.user.rehab_stage < 3:
+        if (
+            self.user.pb >= self.user.baseline
+            and self.user.baseline > 0
+            and self.user.rehab_stage < 3
+        ):
             messagebox.showinfo(
                 message=(
                     f"Nice one, you've caught up to your baseline, it's time to move on to the next phase of recovery."
@@ -201,30 +218,35 @@ class MainWindow:
         #    print("problem getting user info")
         self.add_graph()
         self.activity_info.set("Log some rehab or record a baseline.")
-        self.activity = Activitywindow(self.user, self, self.notebook_activity, width=WIN_WID)
-    
+        self.activity = Activitywindow(
+            self.user, self, self.notebook_activity, width=WIN_WID
+        )
+
     def add_graph(self):
         self.graph_info = StringVar()
         self.graph_label = ttk.Label(self.notebook_graph, textvariable=self.graph_info)
 
         if self.user:
+            self.user.print_graph(show=False)
             try:
                 tmp = self.user.graph
-                
+
                 if os.path.isfile(tmp):
                     self.progress_graph_path = str(tmp)
             except:
-                    print("image does not exist")
-                    self.graph_label.grid(row=0, column=0)
-                    self.graph_info.set("This is a sample graph")
+                print("image does not exist")
+                self.graph_label.grid(row=0, column=0)
+                self.graph_info.set("This is a sample graph")
 
             try:
-                i = Image.open(self.progress_graph_path)
+                with Image.open(self.progress_graph_path) as i:
+                    i = i.resize((WIN_WID, WIN_WID))
+                    self.progress_graph_image = ImageTk.PhotoImage(i)
             except:
                 print("problem getting graph")
+                
                 return 1
-            i = i.resize((WIN_WID, WIN_WID))
-            self.progress_graph_image = ImageTk.PhotoImage(i)
+            
             self.graph_img = ttk.Label(
                 self.notebook_graph, image=self.progress_graph_image
             )
