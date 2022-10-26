@@ -9,7 +9,7 @@ import sqlite3
 
 from datetime import datetime, date, timedelta
 import time
-
+from pathlib import Path
 import sys
 import os
 import tkinter
@@ -29,6 +29,7 @@ WIN_HEI = 500
 # clean folders
 
 # progress info
+# finger.ico = Iconsmind-Outline-Finger License: Linkware (Backlink to http://www.iconsmind.com required)
 
 
 def main():
@@ -75,12 +76,10 @@ class MainWindow:
             else self.__init__(self.root),
         )
 
-
     def set_vars(self):
         self.logged_in = False
         self.warmed_up = False
         self.user_name = StringVar()
-        # self.user_name.set(None)
         self.user_note = StringVar()
         self.user_note.set("No one logged in")
         self.diagnosis_info = StringVar()
@@ -88,21 +87,19 @@ class MainWindow:
         self.recovery_info = StringVar()
         self.progress_info = StringVar()
         self.progress_info.set("Login to see your recovery progress")
-        self.progress_graph_path = "0plot.png"
+        self.progress_graph_path = Path.cwd().parent / ("graphs") / "0plot.png"
         self.progress_graph_image = None
         self.activity_info = StringVar()
         self.activity_info.set("Login to record activity")
 
     def create_mainframe(self):
-        self.mainframe = ttk.Frame(self.root, padding=4)
+        self.mainframe = ttk.Frame(self.root, padding=4, width=WIN_WID)
         self.mainframe.grid(column=0, row=0, sticky=(N, E, S, W))
         self.root.columnconfigure(0, weight=1)
         self.root.rowconfigure(0, weight=1)
-        # mainframe_label = ttk.Label(self.mainframe, text="Rehabilitate your finger injury", justify="center")
-        # mainframe_label.grid(column=0, row=1, sticky=(N, E, S, W))
 
     def create_notebook(self):
-        self.notebook = ttk.Notebook(self.mainframe)
+        self.notebook = ttk.Notebook(self.mainframe, width=WIN_WID)
         self.notebook.grid(column=0, row=4, sticky=(N, E, S, W), padx=5, pady=5)
         self.mainframe.rowconfigure(4, weight=10)
         self.create_notebook_diagnosis()
@@ -186,7 +183,8 @@ class MainWindow:
             self.user_note.set("Enter valid user name")
             return
         if not self.user.exists:
-            diagnosis = Diagnose(self)  # change self to frame  # get diagnosis
+            dg = Diagnose(self)
+            dg.get_diagnosis()  # change self to frame  # get diagnosis
         else:
             self.populate_info()
             self.logged_in = True
@@ -237,6 +235,7 @@ class MainWindow:
                 print("image does not exist")
                 self.graph_label.grid(row=0, column=0)
                 self.graph_info.set("This is a sample graph")
+                self.progress_graph_path = Path.cwd().parent / ("graphs") / "0plot.png"
 
             try:
                 with Image.open(self.progress_graph_path) as i:
@@ -244,9 +243,9 @@ class MainWindow:
                     self.progress_graph_image = ImageTk.PhotoImage(i)
             except:
                 print("problem getting graph")
-                
+
                 return 1
-            
+
             self.graph_img = ttk.Label(
                 self.notebook_graph, image=self.progress_graph_image
             )

@@ -13,7 +13,7 @@ class User:
         self.dbb = Dbb(self)
         if not self.login():
             self.exists = False
-        
+
     def login(self):
         tmp = self.dbb.lookup()
         if not tmp:
@@ -34,7 +34,8 @@ class User:
             self.since_inj = ((date.today()) - (self.date)).days
             self.phase = Phase(self.since_inj, self.grade)
             self.sched_exp = self.since_inj / self.phase.rehab_length
-            self.graph = f"{self.id}plot.png"
+            # self.graph = f"{self.id}plot.png"
+            self.path = Path.cwd().parent / ("graphs") / f"{self.id}plot.png"
             self.exists = True
             return True
 
@@ -87,8 +88,11 @@ class User:
     def name(self, name):
         if not name:
             raise ValueError("Not Name")
+        name = name.strip().split()
+        if len(name) > 1:
+            raise ValueError("Name too long")
         else:
-            self._name = name
+            self._name = name[0]
 
     def recovery_sched(self):
         if len(self.phase.current_phase) > 1:
@@ -98,13 +102,13 @@ class User:
 
     def rehab_sched(self):
         if self.pb >= self.baseline and self.baseline > 0:
-            print(len(Phase.stages)-1)
-            if self.rehab_stage == len(Phase.stages)-1:
+            print(len(Phase.stages) - 1)
+            if self.rehab_stage == len(Phase.stages) - 1:
                 print(f"final rehab stage: {self.rehab_stage}")
-            elif self.rehab_stage in range(len(Phase.stages)-1):
+            elif self.rehab_stage in range(len(Phase.stages) - 1):
                 self.rehab_stage += 1
                 self.dbb.update_stage()
-                pb =  self.dbb.get_max(self.rehab_stage, date=0)
+                pb = self.dbb.get_max(self.rehab_stage, date=0)
                 self.pb = pb[0]
                 self.dbb.update_pb()
                 bs = self.dbb.get_max(self.rehab_stage, mode=0, date=0)
@@ -119,12 +123,12 @@ class User:
             q = self.dbb.get_max(stage, mode=0, date=0)
             print(q)
             try:
-                
-                baseline = (self.dbb.get_max(stage, mode=0, date=0 )[0])
+
+                baseline = self.dbb.get_max(stage, mode=0, date=0)[0]
             except TypeError:
                 baseline = 0
             try:
-                pb = (self.dbb.get_max(stage, date=0)[0])
+                pb = self.dbb.get_max(stage, date=0)[0]
             except TypeError:
                 pb = 0
             stage_info += f"{Phase.stages[stage][0].title()}, Baseline: {baseline} kgs, PB: {pb} kgs.\n"
@@ -137,8 +141,6 @@ class User:
             return f"You're ready to move into the next phase of your rehab, which is {Phase.stages[self.rehab_stage][0]}.\n\nThis is going to involve progressively loading {Phase.stages[self.rehab_stage][1]}.\n\n{stage_info}"
 
         return f"You are in the {Phase.stages[self.rehab_stage][0]} stage of rehab.\n\n Your {Phase.stages[self.rehab_stage][0]} baseline strength is {self.baseline}kg, your current {Phase.stages[self.rehab_stage][0]} P.B is {self.pb} thats {round((progress)*100)}% of your baseline measurement.\n\nContinue progressively loading {Phase.stages[self.rehab_stage][1]}.\n\n{stage_info}"
-
-
 
     def progress_info(self):
         last_sesh = self.dbb.last_sesh()
@@ -154,11 +156,20 @@ class User:
             return "Okay take it easy, you need to wait for the acute phase to pass, come back in 3-5 days"
         # =dt.strftime("%d-%B-%Y")
 
-
     def print_graph(self, show=True):
 
-        colours = ['red', 'orange', 'green', 'blue',]
-        labels = ['single finger', 'half crimp', 'full crimp', 'both hands',]
+        colours = [
+            "red",
+            "orange",
+            "green",
+            "blue",
+        ]
+        labels = [
+            "single finger",
+            "half crimp",
+            "full crimp",
+            "both hands",
+        ]
 
         data = {}
         for s in range(self.rehab_stage + 1):
@@ -167,20 +178,28 @@ class User:
             weights = []
             if not pbs:
                 print("no pbs")
-                dates = [(date.today() - self.date).days,]
-                weights = [0,]
+                dates = [
+                    (date.today() - self.date).days,
+                ]
+                weights = [
+                    0,
+                ]
             else:
                 for pb in pbs:
                     dates.append((date.fromisoformat(pb[1]) - self.date).days)
-                    weights.append(pb[0]) 
-           
+                    weights.append(pb[0])
+
             bs = self.dbb.get_max(stage=s, mode=0)
             bs_dates = []
             bs_weights = []
             if not bs:
                 print("no bs")
-                bs_dates = [(date.today() - self.date).days,]
-                bs_weights = [0,]
+                bs_dates = [
+                    (date.today() - self.date).days,
+                ]
+                bs_weights = [
+                    0,
+                ]
             else:
                 for b in bs:
                     bs_dates.append(((date.fromisoformat(b[1]) - self.date).days))
@@ -188,21 +207,36 @@ class User:
                 bs_dates.append((date.today() - self.date).days)
                 bs_weights.append(bs_weights[-1])
 
-            data[s] = {'dates': dates, 'weights': weights, 'baselines': {'dates': bs_dates, 'weights': bs_weights}}
+            data[s] = {
+                "dates": dates,
+                "weights": weights,
+                "baselines": {"dates": bs_dates, "weights": bs_weights},
+            }
         print(data)
         for i in data:
-            plt.plot(data[i]['dates'], data[i]['weights'], color=colours[i], linestyle="dashed", linewidth=3, marker="*", markerfacecolor="green", markersize=7, label=labels[i],)
-            plt.plot(data[i]['baselines']['dates'], data[i]['baselines']['weights'], color=colours[i], linestyle="--")
-
+            plt.plot(
+                data[i]["dates"],
+                data[i]["weights"],
+                color=colours[i],
+                linestyle="dashed",
+                linewidth=3,
+                marker="*",
+                markerfacecolor="green",
+                markersize=7,
+                label=labels[i],
+            )
+            plt.plot(
+                data[i]["baselines"]["dates"],
+                data[i]["baselines"]["weights"],
+                color=colours[i],
+                linestyle="--",
+            )
 
         plt.xlabel("Days Since Injury")
         plt.ylabel("Max Weight")
         plt.title("Weights over time")
         plt.legend()
-        
-        fname = f"{self.id}plot.png"
-        path = Path.cwd().parent / ('graphs') / fname
-        plt.savefig(path, bbox_inches="tight")
+
+        plt.savefig(self.path, bbox_inches="tight")
         if show:
             plt.show()
-

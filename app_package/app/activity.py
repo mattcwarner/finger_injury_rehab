@@ -66,7 +66,7 @@ class Activitywindow():
             bs_btns[stage] = ttk.Button(self.parent, text=f"Record {Phase.stages[stage][0].title()} Baseline", command= lambda stage=stage: self.new_baseline(stage),)
             bs_btns[stage].grid(column=0, row=2+stage, sticky=(N,E,W))
 
-        self.activity_info.set("Lets Go")
+        self.mainwindow.activity_info.set("Lets Go")
         activity_button = ttk.Button(
             self.parent,
             text="Record Activity",
@@ -77,8 +77,8 @@ class Activitywindow():
         free_tim.grid(column=0, row=7, sticky=(N,E,W))
 
         if "remodelling" not in self.mainwindow.user.phase.current_phase:
-            self.activity_info.set(
-                f"It's too soon for you to start rehab, but you should keep up with your recovery and come back in {self.user.phase.rehab_start_day} days to start rehab."
+            self.mainwindow.activity_info.set(
+                f"It's too soon for you to start rehab, but you should keep up with your recovery and come back in {self.user.phase.rehab_start_day} days to start rehab.\n In the meantime you could record a baseline."
             )
             activity_button['state'] = 'disabled'
 
