@@ -157,7 +157,7 @@ class Activitywindow():
         )
         self.hang_label.grid(column=0, row=4, columnspan=2, sticky=(N, E, S, W))
 
-        self.cal=DateEntry(self.recording,selectmode='day')
+        self.cal=DateEntry(self.recording, selectmode='day')
         
     def entry_changed(self):
         if self.entry_mode.get() == 'manual':
@@ -219,15 +219,21 @@ class Activitywindow():
 
     def perform_rep(self):
         # self.root.bind("<Return>", lambda e: self.launch_activity())
-        timer = Timer(self.root, self.seconds)
+        self.timer = Timer(self.root, self.seconds)
+        self.update_rep()
+        if self.rep == self.attempts:
+            self.finish_activity()
+
+    def update_rep(self):
+        print("updating rep")
         complete = False
         while complete == False:
             try:
-                wt = float(self.weight.get())
+                wt = float(self._weight.get())
             except ValueError:
                 print("problem getting weight")
-            #timer = Timer(self.recording, self.seconds)
-            tick = timer.success
+
+            tick = self.timer.get_success()
             if tick:
                 self.success += 1
                 if wt > self.max_wt:
@@ -239,10 +245,11 @@ class Activitywindow():
             self.log.update({f"rep: {self.rep + 1}": {"weight": {wt}, "success": {tick}}})
             self.rep += 1
             complete = True
-        timer.win.destroy()
+
+        
         self.act_info.set(f"Activity in progress.\nRest 2-3 minutes between reps.\nRep: {self.rep} / {self.attempts}.\nLog: {self.log}")
-        if self.rep == self.attempts:
-            self.finish_activity()
+        self.root.bind("<Return>", lambda e: self.perform_rep())
+        print('rep updated')
 
     def finish_activity(self):
         self.recording.destroy()

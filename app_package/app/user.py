@@ -102,7 +102,7 @@ class User:
 
     def rehab_sched(self):
         if self.pb >= self.baseline and self.baseline > 0:
-            print(len(Phase.stages) - 1)
+            
             if self.rehab_stage == len(Phase.stages) - 1:
                 print(f"final rehab stage: {self.rehab_stage}")
             elif self.rehab_stage in range(len(Phase.stages) - 1):
@@ -114,33 +114,37 @@ class User:
                 bs = self.dbb.get_max(self.rehab_stage, mode=0, date=0)
                 self.baseline = bs[0]
                 self.dbb.update_baseline()
-                print(self.rehab_stage)
+                
             else:
                 print("exception")
 
-        stage_info = "These are your stage records:\n"
-        for stage in Phase.stages:
-            q = self.dbb.get_max(stage, mode=0, date=0)
-            print(q)
+        stage_info = "These are your stage records:"
+        baselines = {}
+        pbs = {}
+        for n, stage in enumerate(Phase.stages):
             try:
-
-                baseline = self.dbb.get_max(stage, mode=0, date=0)[0]
+                baseline = self.dbb.get_max(stage, mode=0, date=0)[0]     
             except TypeError:
                 baseline = 0
             try:
                 pb = self.dbb.get_max(stage, date=0)[0]
             except TypeError:
                 pb = 0
-            stage_info += f"{Phase.stages[stage][0].title()}, Baseline: {baseline} kgs, PB: {pb} kgs.\n"
+            baselines[n] = baseline
+            pbs[n] = pb
+            stage_info += f"\n{Phase.stages[stage][0].title()}, Baseline: {baseline} kgs, PB: {pb} kgs."
+        print(baselines, pbs)
+        b = baselines[self.rehab_stage]
+        p = pbs[self.rehab_stage]
         try:
-            progress = self.pb / self.baseline
+            progress = p / b
         except ZeroDivisionError:
             progress = 0
 
         if not self.baseline:
             return f"You're ready to move into the next phase of your rehab, which is {Phase.stages[self.rehab_stage][0]}.\n\nThis is going to involve progressively loading {Phase.stages[self.rehab_stage][1]}.\n\n{stage_info}"
 
-        return f"You are in the {Phase.stages[self.rehab_stage][0]} stage of rehab.\n\n Your {Phase.stages[self.rehab_stage][0]} baseline strength is {self.baseline}kg, your current {Phase.stages[self.rehab_stage][0]} P.B is {self.pb} thats {round((progress)*100)}% of your baseline measurement.\n\nContinue progressively loading {Phase.stages[self.rehab_stage][1]}.\n\n{stage_info}"
+        return f"You are in the {Phase.stages[self.rehab_stage][0]} stage of rehab.\nYour {Phase.stages[self.rehab_stage][0]} baseline strength is {b}kg, your current {Phase.stages[self.rehab_stage][0]} P.B is {p} thats {round((progress)*100)}% of your baseline measurement.\nContinue progressively loading {Phase.stages[self.rehab_stage][1]}.\n\n{stage_info}"
 
     def progress_info(self):
         last_sesh = self.dbb.last_sesh()
