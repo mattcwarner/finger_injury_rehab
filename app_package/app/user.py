@@ -8,6 +8,7 @@ from pathlib import Path
 
 
 class User:
+    ind_fingers = {1:'Thumb', 2:'Index', 3:'Middle', 4:'Ring', 5:'Pinky',}
     def __init__(self, name):
         self.name = name
         self.dbb = Dbb(self)
@@ -18,29 +19,35 @@ class User:
         tmp = self.dbb.lookup()
         if not tmp:
             return False
-        else:
-            (
-                self.id,
-                self.name,
-                self.date,
-                self.grade,
-                self.hand,
-                self.finger,
-                self.pulleys,
-                self.baseline,
-                self.pb,
-                self.rehab_stage,
-            ) = tmp
-            self.since_inj = ((date.today()) - (self.date)).days
-            self.phase = Phase(self.since_inj, self.grade)
-            self.sched_exp = self.since_inj / self.phase.rehab_length
-            # self.graph = f"{self.id}plot.png"
-            self.path = Path.cwd().parent / ("graphs") / f"{self.id}plot.png"
-            self.exists = True
-            return True
+        # have lookup return dicitonary
+        (
+            self.id,
+            self.name,
+            self.date,
+            self.grade,
+            self.hand,
+            self.finger,
+            self.pulleys,
+            self.baseline,
+            self.pb,
+            self.rehab_stage,
+        ) = tmp
+
+        self.since_inj = ((date.today()) - (self.date)).days
+        self.phase = Phase(self.since_inj, self.grade, self.rehab_stage)
+        self.sched_exp = self.since_inj / self.phase.rehab_length
+        #self.rehab_exp = self.phase.get_stage_exp(self.rehab_stage) # this should come for free two lines before
+        #print(f"percentage of rehab stage: {self.rehab_exp * 100}%")
+
+        # self.graph = f"{self.id}plot.png"
+        self.path = Path.cwd().parent / ("graphs") / f"{self.id}plot.png"
+        self.exists = True
+        self.baseline = self.manual_baseline()
+        
+        return True
 
     def __str__(self):
-        return f"{self.name.title()}: grade {self.grade} injury to the {self.hand}, {self.finger} digit, on {self.date}, {self.since_inj} days ago so you should be roughly {self.sched_exp*100:.2f}% recovered Your baseline strength is {self.baseline}, your current p.b is {self.pb}"
+        return f"Name: {self.name.title()}\nGrade {self.grade} injury to the {self.hand}, {User.ind_fingers[self.finger]} finger, on {self.date}, {self.since_inj} days ago so you should be roughly {self.sched_exp*100:.2f}% recovered Your baseline strength is {self.baseline}, your current p.b is {self.pb}"
 
     @property
     def baseline(self):
@@ -54,6 +61,12 @@ class User:
             self._baseline = int(wt)
         else:
             self._baseline = 0
+
+    def manual_baseline(self):
+        try:
+            return (self.dbb.get_max(self.rehab_stage, mode=0, date=0)[0])
+        except:
+            return 0
 
     @property
     def rehab_stage(self):
@@ -108,11 +121,10 @@ class User:
             elif self.rehab_stage in range(len(Phase.stages) - 1):
                 self.rehab_stage += 1
                 self.dbb.update_stage()
-                pb = self.dbb.get_max(self.rehab_stage, date=0)
-                self.pb = pb[0]
+                tmp = self.dbb.get_max(self.rehab_stage, date=0)
+                self.pb = tmp[0]
                 self.dbb.update_pb()
-                bs = self.dbb.get_max(self.rehab_stage, mode=0, date=0)
-                self.baseline = bs[0]
+                self.manual_baseline()
                 self.dbb.update_baseline()
                 
             else:
@@ -123,7 +135,7 @@ class User:
         pbs = {}
         for n, stage in enumerate(Phase.stages):
             try:
-                baseline = self.dbb.get_max(stage, mode=0, date=0)[0]     
+                baseline = self.dbb.get_max(stage, mode=0, date=0)[0]  
             except TypeError:
                 baseline = 0
             try:
@@ -143,8 +155,16 @@ class User:
 
         if not self.baseline:
             return f"You're ready to move into the next phase of your rehab, which is {Phase.stages[self.rehab_stage][0]}.\n\nThis is going to involve progressively loading {Phase.stages[self.rehab_stage][1]}.\n\n{stage_info}"
-
-        return f"You are in the {Phase.stages[self.rehab_stage][0]} stage of rehab.\nYour {Phase.stages[self.rehab_stage][0]} baseline strength is {b}kg, your current {Phase.stages[self.rehab_stage][0]} P.B is {p} thats {round((progress)*100)}% of your baseline measurement.\nContinue progressively loading {Phase.stages[self.rehab_stage][1]}.\n\n{stage_info}"
+        info = [f"You are in the {Phase.stages[self.rehab_stage][0]} stage of rehab.",
+                f"Your {Phase.stages[self.rehab_stage][0]} baseline strength is {b}kg.",
+                f"Your current {Phase.stages[self.rehab_stage][0]} P.B is {p}.", 
+                f"Thats {round((progress)*100)}% of your baseline measurement.",
+                f"Expected loading at this time: {round(b * self.phase.rehab_exp)} kgs, ({round(self.phase.rehab_exp * 100)} %).",
+                f"Continue progressively loading {Phase.stages[self.rehab_stage][1]}.",
+                stage_info,
+        ]
+        return ("\n".join(info))
+        #return f"You are in the {Phase.stages[self.rehab_stage][0]} stage of rehab.\nYour {Phase.stages[self.rehab_stage][0]} baseline strength is {b}kg, your current {Phase.stages[self.rehab_stage][0]} P.B is {p} thats {round((progress)*100)}% of your baseline measurement.\nContinue progressively loading {Phase.stages[self.rehab_stage][1]}.\n\n{stage_info}"
 
     def progress_info(self):
         last_sesh = self.dbb.last_sesh()

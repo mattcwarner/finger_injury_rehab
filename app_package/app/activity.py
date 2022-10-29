@@ -4,6 +4,7 @@ from tkcalendar import DateEntry
 from datetime import datetime, date, timedelta
 from timer import Timer
 from recovery_schedule import Phase
+from time import sleep
 
 WIN_WID = 400
 
@@ -88,7 +89,7 @@ class Activitywindow():
             return
         attempts = 10
         self.record_mode = "activity"
-        self.mode_info.set('Long duration low intensity loading is reccommended, grab your sling or hangboard')
+        self.mode_info.set(f'Recording {Phase.stages[self.user.rehab_stage][0]} activity.\nLong duration low intensity loading is reccommended, grab your sling or hangboard')
         self.hangs(attempts)
 
     def new_baseline(self, stage):
@@ -208,6 +209,15 @@ class Activitywindow():
         self.info_label = ttk.Label(self.recording, textvariable=self.act_info, wraplength=self.WIN_WID)
         self.info_label.grid(column=0, row=10)
 
+        self.rest_timer = StringVar()
+        self.rest_timer.set("Rest 2 minutes between reps.")
+        self.rest_label = ttk.Label(self.recording, textvariable=self.rest_timer)
+        self.rest_label.grid(column=0, row = 11, padx=5, pady=5)
+
+        self.cancel = ttk.Button(self.recording, text="End Activity Early", command=lambda: self.finish_activity())
+        self.cancel.grid(column=0, row=12)
+
+        
         # weight_entry.focus
         self.go_button.config(text="New Rep", command=lambda: self.perform_rep())
         self.root.bind("<Return>", lambda e: self.perform_rep())
@@ -223,6 +233,13 @@ class Activitywindow():
         self.update_rep()
         if self.rep == self.attempts:
             self.finish_activity()
+        """n = 60
+        while n:
+            min, sec = divmod(n, 60)
+            self.rest_timer.set(str(f"Rest timer: {min:02d}:{sec:02d}"))
+            self.root.update()
+            n -= 1
+            sleep(1)"""
 
     def update_rep(self):
         print("updating rep")
@@ -250,6 +267,7 @@ class Activitywindow():
         self.act_info.set(f"Activity in progress.\nRest 2-3 minutes between reps.\nRep: {self.rep} / {self.attempts}.\nLog: {self.log}")
         self.root.bind("<Return>", lambda e: self.perform_rep())
         print('rep updated')
+        
 
     def finish_activity(self):
         self.recording.destroy()

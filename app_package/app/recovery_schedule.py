@@ -4,18 +4,22 @@ class Phase:
             0: [
                 "single finger, open sling",
                 "only your injured finger in isolation in an open grip using the last pad until you reach your baseline",
+                (0, .25), # expected proportion of rehab time
             ],
             1: [
                 "half crimp",
                 "your injured hand in a half crimp position using the last pad until you reach your baseline",
+                (.26, .49),
             ],
             2: [
                 "full crimp",
                 "your injured hand in a full crimp position using the last pad until you reach your baseline",
+                (.5, .74),
             ],
             3: [
                 "both hands",
                 "both hands in a variety of grip types to continue strengthening your tissues and make you less prone to injury",
+                (.75, 1),
             ],
         }
 
@@ -62,7 +66,7 @@ class Phase:
         },
     }
 
-    def __init__(self, since_inj, grade):
+    def __init__(self, since_inj, grade, stage):
         self.current_phase = []
         self.physical_characteristics = []
         self.current_phase_end_day = None
@@ -88,7 +92,28 @@ class Phase:
             - Phase.severity[grade]["remodelling"][0]
         )
         self.rehab_progress = abs(self.rehab_start_day)
+        self.rehab_exp = self.get_stage_exp(stage)
         
 
         def __str__(self):
-            return "Hello"
+            return "Hello, This is the Phase class"
+
+    def get_stage_exp(self, stage):
+        current_stage_tuple = Phase.stages[stage][2]
+        print(current_stage_tuple)
+        st , fin = current_stage_tuple
+        len_days = int(round(self.rehab_phase_length * (fin - st)))
+        st_days = int(round(self.rehab_phase_length * st))
+        fin_days = int(round(self.rehab_phase_length * fin))
+        print(len_days, st_days, fin_days)
+        print(self.rehab_progress)
+        if (self.rehab_progress) in range(st_days, fin_days):
+            days_in = self.rehab_progress - st_days
+            print(f"days into stage = {days_in}")
+            return ((days_in / len_days))
+        elif self.rehab_progress > fin_days:
+            return "behind schedule"
+        elif self.rehab_progress < st_days:
+            return "ahead of schedule"
+        else:
+            return "something unexpected happened"

@@ -196,7 +196,7 @@ class MainWindow:
         if (
             self.user.pb >= self.user.baseline
             and self.user.baseline > 0
-            and self.user.rehab_stage < 3
+            and self.user.rehab_stage < len(Phase.stages)-1
         ):
             messagebox.showinfo(
                 message=(
@@ -266,10 +266,12 @@ class MainWindow:
                 return
             f0.grid_forget()
             self.populate_info()
+            self.user.baseline = 0
 
         def reset_stage():
             my_stage()
             self.user.dbb.update_stage()
+            self.user.dbb.update_baseline()
             
 
         self.s = IntVar()

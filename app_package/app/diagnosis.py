@@ -106,7 +106,7 @@ class Diagnose:
         self.parent.login_check()
         self.parent.recovery_info.set(":)")
 
-
+# This class has sequential functions to get injury imformation from the user in a tk frame.
 class Diagnose_window(Diagnose):
     def __init__(self, parent):
         self.parent = parent
