@@ -12,14 +12,19 @@ class Phase:
                 (.26, .49),
             ],
             2: [
-                "full crimp",
-                "your injured hand in a full crimp position using the last pad until you reach your baseline",
-                (.5, .74),
+                "single finger, crimp sling",
+                "your injured finger in isolation at at around 90 degrees of flexion at the PIP joing and locked out or hyperextended at the DIP joint",
+                (.5, .64),
             ],
             3: [
+                "full crimp",
+                "your injured hand in a full crimp position using the last pad until you reach your baseline",
+                (.65, .79),
+            ],
+            4: [
                 "both hands",
                 "both hands in a variety of grip types to continue strengthening your tissues and make you less prone to injury",
-                (.75, 1),
+                (.8, 1),
             ],
         }
 
