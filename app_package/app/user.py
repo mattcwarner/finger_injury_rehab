@@ -187,14 +187,12 @@ class User:
             "orange",
             "green",
             "blue",
+            "brown", 
+            "purple",
+            "pink",
         ]
-        labels = [
-            "single finger",
-            "half crimp",
-            "full crimp",
-            "both hands",
-        ]
-
+        labels = [Phase.stages[stage][0] for stage in Phase.stages]
+       
         data = {}
         for s in range(self.rehab_stage + 1):
             pbs = self.dbb.get_max(stage=s, mode=1)
