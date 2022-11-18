@@ -40,7 +40,7 @@ class User:
         #print(f"percentage of rehab stage: {self.rehab_exp * 100}%")
 
         # self.graph = f"{self.id}plot.png"
-        self.path = Path.cwd().parent / ("graphs") / f"{self.id}plot.png"
+        self.path = Path.cwd() / ("graphs") / f"{self.id}plot.png" #Path.cwd().parent / ("graphs") / f"{self.id}plot.png"
         self.exists = True
         self.baseline = self.manual_baseline()
         

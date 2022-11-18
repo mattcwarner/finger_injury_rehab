@@ -2,7 +2,13 @@ from tkinter import *
 from tkinter import ttk, messagebox
 
 from tkcalendar import DateEntry
-from app.databaser import Dbb
+
+try:
+    from databaser import Dbb
+except ModuleNotFoundError:
+    from app.databaser import Dbb
+
+
 from datetime import datetime, date, timedelta
 
 # This is a parent class that takes care of collection and checking variables

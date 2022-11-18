@@ -1,10 +1,10 @@
 from timer import Timer
 from recovery_schedule import Phase
+
 from diagnosis import Diagnose
 from user import User
-from databaser import Dbb
 from activity import Activitywindow
-
+from databaser import Dbb
 import sqlite3
 
 from datetime import datetime, date, timedelta
@@ -87,7 +87,7 @@ class MainWindow:
         self.recovery_info = StringVar()
         self.progress_info = StringVar()
         self.progress_info.set("Login to see your recovery progress")
-        self.progress_graph_path = Path.cwd().parent / ("graphs") / "0plot.png"
+        self.progress_graph_path = Path.cwd() / ("graphs") / "0plot.png"#Path.cwd().parent / ("graphs") / "0plot.png"
         self.progress_graph_image = None
         self.activity_info = StringVar()
         self.activity_info.set("Login to record activity")
