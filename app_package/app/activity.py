@@ -4,6 +4,7 @@ from tkcalendar import DateEntry
 from datetime import datetime, date, timedelta
 from timer import Timer
 from recovery_schedule import Phase
+from time import sleep
 
 WIN_WID = 400
 
@@ -66,7 +67,7 @@ class Activitywindow():
             bs_btns[stage] = ttk.Button(self.parent, text=f"Record {Phase.stages[stage][0].title()} Baseline", command= lambda stage=stage: self.new_baseline(stage),)
             bs_btns[stage].grid(column=0, row=2+stage, sticky=(N,E,W))
 
-        self.activity_info.set("Lets Go")
+        self.mainwindow.activity_info.set("Lets Go")
         activity_button = ttk.Button(
             self.parent,
             text="Record Activity",
@@ -77,8 +78,8 @@ class Activitywindow():
         free_tim.grid(column=0, row=7, sticky=(N,E,W))
 
         if "remodelling" not in self.mainwindow.user.phase.current_phase:
-            self.activity_info.set(
-                f"It's too soon for you to start rehab, but you should keep up with your recovery and come back in {self.user.phase.rehab_start_day} days to start rehab."
+            self.mainwindow.activity_info.set(
+                f"It's too soon for you to start rehab, but you should keep up with your recovery and come back in {self.user.phase.rehab_start_day} days to start rehab.\n In the meantime you could record a baseline."
             )
             activity_button['state'] = 'disabled'
 
@@ -88,7 +89,7 @@ class Activitywindow():
             return
         attempts = 10
         self.record_mode = "activity"
-        self.mode_info.set('Long duration low intensity loading is reccommended, grab your sling or hangboard')
+        self.mode_info.set(f'Recording {Phase.stages[self.user.rehab_stage][0]} activity.\nLong duration low intensity loading is reccommended, grab your sling or hangboard')
         self.hangs(attempts)
 
     def new_baseline(self, stage):
@@ -157,7 +158,7 @@ class Activitywindow():
         )
         self.hang_label.grid(column=0, row=4, columnspan=2, sticky=(N, E, S, W))
 
-        self.cal=DateEntry(self.recording,selectmode='day')
+        self.cal=DateEntry(self.recording, selectmode='day')
         
     def entry_changed(self):
         if self.entry_mode.get() == 'manual':
@@ -204,10 +205,19 @@ class Activitywindow():
             self.cal.grid_forget()
         
         self.act_info = StringVar()
-        self.act_info.set(f"Rest 2-3 minutes between reps.\nRep: {self.rep} / {self.attempts}.\nLog: {self.log}")
+        self.act_info.set(f"Rest 2-3 minutes between reps.\nCompleted reps: {self.rep} / {self.attempts}.\nLog: {self.log}")
         self.info_label = ttk.Label(self.recording, textvariable=self.act_info, wraplength=self.WIN_WID)
         self.info_label.grid(column=0, row=10)
 
+        self.rest_timer = StringVar()
+        self.rest_timer.set("Rest 2 minutes between reps.")
+        self.rest_label = ttk.Label(self.recording, textvariable=self.rest_timer)
+        self.rest_label.grid(column=0, row = 11, padx=5, pady=5)
+
+        self.cancel = ttk.Button(self.recording, text="End Activity Early", command=lambda: self.finish_activity())
+        self.cancel.grid(column=0, row=12)
+
+        
         # weight_entry.focus
         self.go_button.config(text="New Rep", command=lambda: self.perform_rep())
         self.root.bind("<Return>", lambda e: self.perform_rep())
@@ -219,15 +229,28 @@ class Activitywindow():
 
     def perform_rep(self):
         # self.root.bind("<Return>", lambda e: self.launch_activity())
-        timer = Timer(self.root, self.seconds)
+        self.timer = Timer(self.root, self.seconds)
+        self.update_rep()
+        if self.rep == self.attempts:
+            self.finish_activity()
+        """n = 60
+        while n:
+            min, sec = divmod(n, 60)
+            self.rest_timer.set(str(f"Rest timer: {min:02d}:{sec:02d}"))
+            self.root.update()
+            n -= 1
+            sleep(1)"""
+
+    def update_rep(self):
+        print("updating rep")
         complete = False
         while complete == False:
             try:
-                wt = float(self.weight.get())
+                wt = float(self._weight.get())
             except ValueError:
                 print("problem getting weight")
-            #timer = Timer(self.recording, self.seconds)
-            tick = timer.success
+
+            tick = self.timer.get_success()
             if tick:
                 self.success += 1
                 if wt > self.max_wt:
@@ -239,10 +262,12 @@ class Activitywindow():
             self.log.update({f"rep: {self.rep + 1}": {"weight": {wt}, "success": {tick}}})
             self.rep += 1
             complete = True
-        timer.win.destroy()
+
+        
         self.act_info.set(f"Activity in progress.\nRest 2-3 minutes between reps.\nRep: {self.rep} / {self.attempts}.\nLog: {self.log}")
-        if self.rep == self.attempts:
-            self.finish_activity()
+        self.root.bind("<Return>", lambda e: self.perform_rep())
+        print('rep updated')
+        
 
     def finish_activity(self):
         self.recording.destroy()
