@@ -205,7 +205,7 @@ class Activitywindow():
             self.cal.grid_forget()
         
         self.act_info = StringVar()
-        self.act_info.set(f"Rest 2-3 minutes between reps.\nRep: {self.rep} / {self.attempts}.\nLog: {self.log}")
+        self.act_info.set(f"Rest 2-3 minutes between reps.\nCompleted reps: {self.rep} / {self.attempts}.\nLog: {self.log}")
         self.info_label = ttk.Label(self.recording, textvariable=self.act_info, wraplength=self.WIN_WID)
         self.info_label.grid(column=0, row=10)
 

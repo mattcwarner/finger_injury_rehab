@@ -47,8 +47,7 @@ class User:
         return True
 
     def __str__(self):
-        return f"Name: {self.name.title()}\nGrade {self.grade} injury to the {self.hand}, {User.ind_fingers[self.finger]} finger, on {self.date}, {self.since_inj} days ago so you should be roughly {self.sched_exp*100:.2f}% recovered Your baseline strength is {self.baseline}, your current p.b is {self.pb}"
-
+        return f"Name: {self.name.title()}\nGrade {self.grade} injury to the {self.hand}, {User.ind_fingers[self.finger]} finger.\nInjured on {self.date}, so you should be roughly {self.sched_exp*100:.2f}% recovered.\n"
     @property
     def baseline(self):
         return self._baseline
@@ -57,14 +56,17 @@ class User:
     def baseline(self, wt):
         if wt == None:
             self._baseline = 0
-        elif int(wt) > 0:
-            self._baseline = int(wt)
+        elif float(wt) > 0:
+            self._baseline = float(wt)
         else:
             self._baseline = 0
 
     def manual_baseline(self):
         try:
-            return (self.dbb.get_max(self.rehab_stage, mode=0, date=0)[0])
+            result = (self.dbb.get_max(self.rehab_stage, mode=0, date=0)[0])
+            print(f"manual baseline: {result}, rehab stage: {self.rehab_stage}")
+
+            return result
         except:
             return 0
 
@@ -111,7 +113,7 @@ class User:
         if len(self.phase.current_phase) > 1:
             return f"It's been {self.since_inj} days, you're between the {self.phase.current_phase[0]} and {self.phase.current_phase[1]} phase.\n\n If you're feeling good you should be feeling {self.phase.physical_characteristics[1]}.\n\n Otherwise you might still feel {self.phase.physical_characteristics[0]}.\n\n You should still be making sure you {self.phase.precautions[0]}.\n\n But to recover you could start to {self.phase.recovery_activities[1]}."
         else:
-            return f"It's been {self.since_inj} days, you're in the {self.phase.current_phase[0]} phase.\n\n You should be feeling {self.phase.physical_characteristics[0]}.\n\n You should be making sure you {self.phase.precautions[0]}.\n\n To recover you should be {self.phase.recovery_activities[0]}."
+            return f"It's been {self.since_inj} days, you're in the {self.phase.current_phase[0]} phase.\nYour injury is expected to take {self.phase.rehab_phase_length} days to recover from, so you still have {self.phase.rehab_phase_length - self.since_inj} days left.\n\n You should be feeling {self.phase.physical_characteristics[0]}.\n\n You should be making sure you {self.phase.precautions[0]}.\n\n To recover you should be {self.phase.recovery_activities[0]}."
 
     def rehab_sched(self):
         if self.pb >= self.baseline and self.baseline > 0:
@@ -122,7 +124,11 @@ class User:
                 self.rehab_stage += 1
                 self.dbb.update_stage()
                 tmp = self.dbb.get_max(self.rehab_stage, date=0)
-                self.pb = tmp[0]
+                try:
+                    self.pb = tmp[0]
+                except TypeError:
+                    self.pb = 0
+                
                 self.dbb.update_pb()
                 self.manual_baseline()
                 self.dbb.update_baseline()
@@ -163,17 +169,18 @@ class User:
                 f"Continue progressively loading {Phase.stages[self.rehab_stage][1]}.",
                 stage_info,
         ]
-        return ("\n".join(info))
+        return ("\n\n".join(info))
         #return f"You are in the {Phase.stages[self.rehab_stage][0]} stage of rehab.\nYour {Phase.stages[self.rehab_stage][0]} baseline strength is {b}kg, your current {Phase.stages[self.rehab_stage][0]} P.B is {p} thats {round((progress)*100)}% of your baseline measurement.\nContinue progressively loading {Phase.stages[self.rehab_stage][1]}.\n\n{stage_info}"
 
     def progress_info(self):
         last_sesh = self.dbb.last_sesh()
+        print(self.baseline)
         if not self.baseline:
-            return "We need to test your baseline to find out what to expect from you.\nHead to the activity tab to add one."
+            return "We need to test your baseline to find out what to expect from you.\nHead to the activity tab to add one.\n"
         todays_wt = round(self.baseline * self.sched_exp)
         if self.since_inj > 2:
             if last_sesh:
-                return f"Okay {self.name.title()}, it's been {self.since_inj} days since your injury.\n\nAt this stage you might expect to be using around {todays_wt}kg ({round(self.sched_exp * 100)}% of your baseline.\n"
+                return f"Okay {self.name.title()}, it's been {self.since_inj} days since your injury.\nThis might mean that you are roughly ({round(self.sched_exp * 100)}% through your rehab journey.\n" #At this stage you might expect to be using around {todays_wt}kg ({round(self.sched_exp * 100)}% of your baseline.\n"
             else:
                 return f"Okay {self.name.title()}, it's been {self.since_inj} days since your injury, this is your first session, try to take it really slow\n"
         else:
@@ -255,7 +262,7 @@ class User:
             )
 
         plt.xlabel("Days Since Injury")
-        plt.ylabel("Max Weight")
+        plt.ylabel("Max Weight (Kg)")
         plt.title("Weights over time")
         plt.legend()
 

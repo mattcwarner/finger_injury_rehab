@@ -55,7 +55,7 @@ class Diagnose:
     @finger.setter
     def finger(self, finger):
         finger = int(finger)
-        if finger in range(1, 5):
+        if finger in range(2, 6):
             self._finger = finger
         else:
             raise ValueError("Prob with finger.")
@@ -201,22 +201,22 @@ class Diagnose_window(Diagnose):
         fingers = ttk.Frame(structs, borderwidth=5, relief="ridge")
         fingers.grid(row=1, column=0, padx=4, pady=5)
         self.f = StringVar()
-        f1 = ttk.Radiobutton((fingers), text="First Finger", variable=self.f, value=1)
+        f1 = ttk.Radiobutton((fingers), text="First Finger", variable=self.f, value=2)
         f1.grid(
             row=1,
             column=0,
         )
-        f2 = ttk.Radiobutton((fingers), text="Middle Finger", variable=self.f, value=2)
+        f2 = ttk.Radiobutton((fingers), text="Middle Finger", variable=self.f, value=3)
         f2.grid(
             row=1,
             column=1,
         )
-        f3 = ttk.Radiobutton((fingers), text="Ring Finger", variable=self.f, value=3)
+        f3 = ttk.Radiobutton((fingers), text="Ring Finger", variable=self.f, value=4)
         f3.grid(
             row=2,
             column=0,
         )
-        f4 = ttk.Radiobutton((fingers), text="Pinky Finger", variable=self.f, value=4)
+        f4 = ttk.Radiobutton((fingers), text="Pinky Finger", variable=self.f, value=5)
         f4.grid(
             row=2,
             column=1,

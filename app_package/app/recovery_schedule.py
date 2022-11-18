@@ -2,8 +2,10 @@ class Phase:
     # stages in progressive loading
     stages = {
             0: [
-                "single finger, open sling",
+                "single finger, open sling", # the name/description of the stage
                 "only your injured finger in isolation in an open grip using the last pad until you reach your baseline",
+                # the description of the loading protocol, to be prefaced with 
+                # "continue progressively loading ..."
                 (0, .25), # expected proportion of rehab time
             ],
             1: [
@@ -13,7 +15,7 @@ class Phase:
             ],
             2: [
                 "single finger, crimp sling",
-                "your injured finger in isolation at at around 90 degrees of flexion at the PIP joing and locked out or hyperextended at the DIP joint",
+                "your injured finger in isolation at at around 90 degrees of flexion at the PIP joint and locked out or hyperextended at the DIP joint",
                 (.5, .64),
             ],
             3: [
@@ -117,8 +119,11 @@ class Phase:
             print(f"days into stage = {days_in}")
             return ((days_in / len_days))
         elif self.rehab_progress > fin_days:
-            return "behind schedule"
+            print(f"behind schedule {self.rehab_progress - fin_days}")
+            return 0
         elif self.rehab_progress < st_days:
-            return "ahead of schedule"
+            print(f"ahead of schedule {st_days - self.rehab_progress}")
+            return 0
         else:
-            return "something unexpected happened"
+            print("something unexpected happened")
+            return 0
