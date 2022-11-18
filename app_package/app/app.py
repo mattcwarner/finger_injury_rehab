@@ -1,3 +1,4 @@
+
 from timer import Timer
 from recovery_schedule import Phase
 
@@ -23,12 +24,10 @@ WIN_WID = 400
 WIN_HEI = 500
 
 # TO DO
-# login/out as menu option
-# improve  data
-# catch exceptions
-# clean folders
 
-# progress info
+# .exe command:
+# pyinstaller --onefile --windowed --hiddenimport=babel.numbers, --hiddenimport=_cffi_backend -i"images\fingers.ico" app/app.py
+
 # finger.ico = Iconsmind-Outline-Finger License: Linkware (Backlink to http://www.iconsmind.com required)
 
 
