@@ -1,4 +1,4 @@
-# YOUR PROJECT TITLE
+# Finger Rehabilitator
 #### Video Demo:  https://youtu.be/wWO20AGduLs
 #### Description:
 #### Intended use:
