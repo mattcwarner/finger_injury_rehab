@@ -4,7 +4,7 @@ import sqlite3
 class Dbb():
     def __init__(self, user):
         # connect to db
-        self.conn = sqlite3.connect("../fingers.db")
+        self.conn = sqlite3.connect("fingers.db")
         self.db = self.conn.cursor()
         self.create_tables()
         self.user = user

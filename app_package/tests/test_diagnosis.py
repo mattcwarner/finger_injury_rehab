@@ -1,4 +1,7 @@
-from diagnosis import Diagnose
+from app.diagnosis import Diagnose
+
+
+
 from datetime import datetime, date, timedelta
 
 import pytest
@@ -34,12 +37,12 @@ def test_hand():
 
 def test_thumb():
     with pytest.raises(ValueError):
-        dg.finger = 0
+        dg.finger = 1
 
 
 def test_alien_finger():
     with pytest.raises(ValueError):
-        dg.finger = 5
+        dg.finger = 6
 
 
 def test_pulleys():
